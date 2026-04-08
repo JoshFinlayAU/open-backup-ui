@@ -4,6 +4,9 @@ import { setChunkedCookie, deleteChunkedCookie } from "@/lib/utils/cookie-manage
 import { configStore, VBRSource } from "@/lib/server/config-store"
 import { tokenManager } from "@/lib/server/token-manager"
 import { proxmoxFetch } from "@/lib/api/proxmox-fetch"
+import { createLogger } from "@/lib/logger"
+
+const logger = createLogger('Auth')
 
 // Platform-specific auth configurations
 const platformConfigs = {
@@ -62,6 +65,7 @@ export async function POST(
         const { platform } = await params
 
         if (!platformConfigs[platform as Platform]) {
+            logger.warn(`Auth attempt for unknown platform: ${platform}`)
             return NextResponse.json(
                 { error: "Unknown platform" },
                 { status: 400 }
@@ -73,11 +77,14 @@ export async function POST(
         const { url, username, password, sourceId } = body
 
         if (!sourceId && (!url || !username || !password)) {
+            logger.warn(`Auth request for ${platform} missing required fields`)
             return NextResponse.json(
                 { error: "Missing required fields: url, username, password" },
                 { status: 400 }
             )
         }
+
+        logger.info(`Auth request — platform=${platform} username=${username ?? '(from store)'} url=${url ?? '(from store)'}`)
 
         // Populate credentials from store if sourceId provided (for all platforms)
         let resolvedUrl = url
@@ -85,11 +92,15 @@ export async function POST(
         let resolvedPassword = password
 
         if (sourceId && !resolvedPassword) {
+            logger.debug(`Resolving credentials from config store for sourceId=${sourceId}`)
             const source = configStore.getById(sourceId)
             if (source) {
                 resolvedUsername = source.username
                 resolvedPassword = source.password
                 resolvedUrl = `${source.protocol}://${source.host}:${source.port}`
+                logger.debug(`Resolved credentials: username=${resolvedUsername}, url=${resolvedUrl}`)
+            } else {
+                logger.warn(`sourceId ${sourceId} not found in config store`)
             }
         }
 
@@ -122,12 +133,13 @@ export async function POST(
                         maxAge: 60 * 60 * 24 * 7
                     });
 
-                    console.log(`[Auth] Authenticated via stored creds: ${sourceId}`);
-                    return NextResponse.json({ success: true, sourceId });
+                logger.info(`Authenticated via stored credentials: ${sourceId}`)
+                return NextResponse.json({ success: true, sourceId });
                 }
             }
 
             // Fallthrough if auth fails (client might try manual login)
+            logger.error(`Authentication failed with stored credentials for ${sourceId}`)
             return NextResponse.json(
                 { error: "Authentication failed with stored credentials." },
                 { status: 401 }
@@ -146,6 +158,7 @@ export async function POST(
             }
 
             const sourceId = `vbr-${host}-${port}`;
+            logger.info(`VBR auth attempt — sourceId=${sourceId} username=${username}`)
 
             const source: VBRSource = {
                 id: sourceId,
@@ -165,6 +178,7 @@ export async function POST(
 
             if (!token) {
                 configStore.delete(sourceId);
+                logger.error(`VBR authentication failed for ${sourceId}`)
                 return NextResponse.json(
                     { error: "Authentication failed. Check your data source credentials." },
                     { status: 401 }
@@ -190,7 +204,7 @@ export async function POST(
             // Clean up legacy token cookies
             await deleteChunkedCookie(cookieStore, config.tokenCookie);
 
-            console.log(`[Auth] Authenticated VBR source: ${sourceId}`);
+            logger.info(`VBR authenticated: ${sourceId}`)
             return NextResponse.json({ success: true, sourceId });
         }
 
@@ -206,6 +220,7 @@ export async function POST(
             }
 
             const sourceId = `vb365-${host}-${port}`;
+            logger.info(`VB365 auth attempt — sourceId=${sourceId} username=${username}`)
 
             const source: VBRSource = {
                 id: sourceId,
@@ -225,6 +240,7 @@ export async function POST(
 
             if (!token) {
                 configStore.delete(sourceId);
+                logger.error(`VB365 authentication failed for ${sourceId}`)
                 return NextResponse.json(
                     { error: "Authentication failed. Check your VB365 credentials." },
                     { status: 401 }
@@ -250,7 +266,7 @@ export async function POST(
             // Clean up legacy token cookies
             await deleteChunkedCookie(cookieStore, config.tokenCookie);
 
-            console.log(`[Auth] Authenticated VB365 source: ${sourceId}`);
+            logger.info(`VB365 authenticated: ${sourceId}`)
             return NextResponse.json({ success: true, sourceId });
         }
 
@@ -267,6 +283,8 @@ export async function POST(
             const sourceId = `proxmox-${host}-${port}`;
             const baseUrl = `https://${host}:${port}`;
 
+            logger.info(`Proxmox VE auth attempt — sourceId=${sourceId} username=${username}`)
+
             // Build body exactly as curl does: username sent raw (preserving @),
             // password URL-encoded to handle special characters.
             const proxmoxBody = `username=${username}&password=${encodeURIComponent(password)}`;
@@ -278,6 +296,7 @@ export async function POST(
             });
 
             if (!authResponse.ok) {
+                logger.error(`Proxmox VE auth failed for ${username}@${host}: HTTP ${authResponse.status}`)
                 return NextResponse.json(
                     { error: "Authentication failed. Check your Proxmox credentials." },
                     { status: 401 }
@@ -289,11 +308,14 @@ export async function POST(
             const csrfToken = authData?.data?.CSRFPreventionToken;
 
             if (!ticket) {
+                logger.error(`Proxmox VE auth response for ${username} contained no ticket`)
                 return NextResponse.json(
                     { error: "No ticket received from Proxmox." },
                     { status: 401 }
                 );
             }
+
+            logger.debug(`Proxmox VE ticket received for ${sourceId}, hasCsrf=${!!csrfToken}`)
 
             const source: VBRSource = {
                 id: sourceId,
@@ -335,7 +357,7 @@ export async function POST(
                 maxAge: 60 * 60 * 24 * 7
             });
 
-            console.log(`[Auth] Authenticated Proxmox source: ${sourceId}`);
+            logger.info(`Proxmox VE authenticated: ${sourceId}`)
             return NextResponse.json({ success: true, sourceId });
         }
 
@@ -352,6 +374,8 @@ export async function POST(
             const sourceId = `pbs-${host}-${port}`;
             const baseUrl = `https://${host}:${port}`;
 
+            logger.info(`PBS auth attempt — sourceId=${sourceId} username=${username}`)
+
             // Build body exactly as curl does: username sent raw (preserving @),
             // password URL-encoded to handle special characters.
             const pbsBody = `username=${username}&password=${encodeURIComponent(password)}`;
@@ -363,6 +387,7 @@ export async function POST(
             });
 
             if (!authResponse.ok) {
+                logger.error(`PBS auth failed for ${username}@${host}: HTTP ${authResponse.status}`)
                 return NextResponse.json(
                     { error: "Authentication failed. Check your PBS credentials." },
                     { status: 401 }
@@ -374,11 +399,14 @@ export async function POST(
             const csrfToken = authData?.data?.CSRFPreventionToken;
 
             if (!ticket) {
+                logger.error(`PBS auth response for ${username} contained no ticket`)
                 return NextResponse.json(
                     { error: "No ticket received from Proxmox Backup Server." },
                     { status: 401 }
                 );
             }
+
+            logger.debug(`PBS ticket received for ${sourceId}, hasCsrf=${!!csrfToken}`)
 
             const source: VBRSource = {
                 id: sourceId,
@@ -420,7 +448,7 @@ export async function POST(
                 maxAge: 60 * 60 * 24 * 7
             });
 
-            console.log(`[Auth] Authenticated PBS source: ${sourceId}`);
+            logger.info(`PBS authenticated: ${sourceId}`)
             return NextResponse.json({ success: true, sourceId });
         }
 
@@ -516,10 +544,11 @@ export async function POST(
             path: "/"
         })
 
+        logger.info(`Legacy auth succeeded for ${platform} — sourceId=${legacySourceId}`)
         return NextResponse.json({ success: true, sourceId: legacySourceId })
 
     } catch (error) {
-        console.error("Auth error:", error)
+        logger.error('Auth route error', error)
         return NextResponse.json(
             { error: error instanceof Error ? error.message : "Authentication failed" },
             { status: 500 }
@@ -574,7 +603,7 @@ export async function GET(
 
         return NextResponse.json({ authenticated: true, url })
     } catch (error) {
-        console.error("Session check error:", error)
+        logger.error('Session check error', error)
         return NextResponse.json({ authenticated: false })
     }
 }
@@ -653,9 +682,10 @@ export async function DELETE(
             cookieStore.delete(`${config.tokenCookie}_url`)
         }
 
+        logger.info(`Logout successful for platform=${platform}`)
         return NextResponse.json({ success: true })
     } catch (error) {
-        console.error("Logout error:", error)
+        logger.error('Logout error', error)
         return NextResponse.json(
             { error: "Logout failed" },
             { status: 500 }

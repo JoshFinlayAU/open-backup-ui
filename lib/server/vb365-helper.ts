@@ -3,6 +3,9 @@ import { cookies } from 'next/headers';
 import { getChunkedCookie } from '@/lib/utils/cookie-manager';
 import { tokenManager } from './token-manager';
 import { configStore } from './config-store';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('VB365Helper');
 
 async function loginWithEnvVars(baseUrl: string): Promise<string | null> {
     const username = process.env.VBM_USERNAME;
@@ -11,7 +14,7 @@ async function loginWithEnvVars(baseUrl: string): Promise<string | null> {
     if (!username || !password) return null;
 
     try {
-        console.log('[VB365 Helper] Attempting login via Env Vars...');
+        logger.info(`Attempting login to ${baseUrl} via env vars as ${username}`);
         const body = new URLSearchParams({
             grant_type: 'password',
             username,
@@ -28,14 +31,15 @@ async function loginWithEnvVars(baseUrl: string): Promise<string | null> {
         });
 
         if (!response.ok) {
-            console.error('[VB365 Helper] Env var login failed:', response.status);
+            logger.error(`Env var login failed: HTTP ${response.status}`);
             return null;
         }
 
+        logger.info('Env var login succeeded');
         const data = await response.json();
         return data.access_token;
     } catch (error) {
-        console.error('[VB365 Helper] Env var login error:', error);
+        logger.error('Env var login threw an exception', error);
         return null;
     }
 }
@@ -48,6 +52,7 @@ export async function getVB365Config(): Promise<{ baseUrl: string; token: string
     const vb365Source = allSources.find(s => s.platform === 'vb365');
 
     if (vb365Source) {
+        logger.debug(`Found VB365 source ${vb365Source.id} in config store, getting token`);
         const token = await tokenManager.getToken(vb365Source.id);
         if (token) {
             return {
@@ -55,6 +60,7 @@ export async function getVB365Config(): Promise<{ baseUrl: string; token: string
                 token
             };
         }
+        logger.warn(`Token manager returned null for VB365 source ${vb365Source.id}`);
     }
 
     // 2. Fallback: Legacy cookie token (Client Cookie)
@@ -62,18 +68,21 @@ export async function getVB365Config(): Promise<{ baseUrl: string; token: string
     const cookieUrl = cookieStore.get('veeam_vb365_token_url')?.value;
 
     if (cookieToken && cookieUrl) {
+        logger.debug('Using VB365 token from session cookie');
         return { baseUrl: cookieUrl, token: cookieToken };
     }
 
     // 3. Fallback: Env Vars (Global Config)
     const envUrl = process.env.VBM_API_URL;
     if (envUrl && process.env.VBM_USERNAME && process.env.VBM_PASSWORD) {
+        logger.debug(`Falling back to env var auth for ${envUrl}`);
         const token = await loginWithEnvVars(envUrl);
         if (token) {
             return { baseUrl: envUrl, token };
         }
     }
 
+    logger.warn('No VB365 auth source available (config store, cookie, or env vars)');
     return null;
 }
 
@@ -83,15 +92,18 @@ export async function refreshVB365Token(): Promise<string | null> {
     const vb365Source = allSources.find(s => s.platform === 'vb365');
 
     if (vb365Source) {
+        logger.info(`Refreshing VB365 token for source ${vb365Source.id}`);
         return tokenManager.refreshToken(vb365Source.id);
     }
 
     // 2. Refresh via Env Vars
     const baseUrl = process.env.VBM_API_URL;
     if (baseUrl && process.env.VBM_USERNAME && process.env.VBM_PASSWORD) {
+        logger.info('Refreshing VB365 token via env vars');
         return loginWithEnvVars(baseUrl);
     }
 
+    logger.warn('Cannot refresh VB365 token — no config store source or env vars available');
     // Can't refresh legacy cookie without credentials
     return null;
 }

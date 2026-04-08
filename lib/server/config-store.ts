@@ -2,6 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import os from 'os';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ConfigStore');
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'sources.json');
@@ -27,7 +30,7 @@ function getEncryptionKey(): string {
         try {
             return fs.readFileSync(KEY_FILE_PATH, 'utf-8').trim();
         } catch (e) {
-            console.error('Failed to read encryption key file:', e);
+            logger.error('Failed to read encryption key file', e);
         }
     }
 
@@ -35,10 +38,10 @@ function getEncryptionKey(): string {
     try {
         const newKey = crypto.randomBytes(32).toString('hex');
         fs.writeFileSync(KEY_FILE_PATH, newKey, { mode: 0o600 }); // Read/write only by owner
-        console.log(`[ConfigStore] Generated new unique encryption key at ${KEY_FILE_PATH}`);
+        logger.info(`Generated new unique encryption key at ${KEY_FILE_PATH}`);
         return newKey;
     } catch (e) {
-        console.error('Failed to write encryption key file, falling back to legacy default:', e);
+        logger.error('Failed to write encryption key file, falling back to legacy default', e);
         return LEGACY_DEFAULT_KEY;
     }
 }
@@ -110,11 +113,11 @@ function migrateLegacyPasswords() {
                     const plain = decrypt(source.encryptedPassword, LEGACY_DEFAULT_KEY);
                     // Re-encrypt with new key
                     const reEncrypted = encrypt(plain, ENCRYPTION_KEY);
-                    console.log(`[ConfigStore] Migrated password for source ${source.host}`);
+                    logger.info(`Migrated encrypted password for source ${source.host}`);
                     modified = true;
                     return { ...source, encryptedPassword: reEncrypted };
                 } catch (legacyErr) {
-                    console.error(`[ConfigStore] Failed to migrate password for ${source.host}:`, legacyErr);
+                    logger.error(`Failed to migrate password for ${source.host}`, legacyErr);
                     return source; // Leave as is if both fail
                 }
             }
@@ -122,10 +125,10 @@ function migrateLegacyPasswords() {
 
         if (modified) {
             fs.writeFileSync(CONFIG_FILE, JSON.stringify(updated, null, 2));
-            console.log('[ConfigStore] Migration complete: All passwords re-encrypted with machine key.');
+            logger.info('Migration complete: all passwords re-encrypted with machine key');
         }
     } catch (e) {
-        console.error('[ConfigStore] Migration check failed:', e);
+        logger.error('Migration check failed', e);
     }
 }
 
@@ -142,6 +145,7 @@ export const configStore = {
         try {
             const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
             const stored: StoredSource[] = JSON.parse(data);
+            logger.debug(`Loaded ${stored.length} source(s) from config`);
             return stored.map(s => {
                 // Return without password for safety but indicate if present
                 const { encryptedPassword, ...rest } = s;
@@ -151,7 +155,7 @@ export const configStore = {
                 } as VBRSource;
             });
         } catch (e) {
-            console.error('Failed to read config store:', e);
+            logger.error('Failed to read config store', e);
             return [];
         }
     },
@@ -240,13 +244,13 @@ export const configStore = {
             try {
                 decryptedPassword = decrypt(encryptedPassword);
             } catch (e) {
-                console.error(`Failed to decrypt password for ${id}, attempting legacy fallback`, e);
+                logger.error(`Failed to decrypt password for ${id}, attempting legacy fallback`, e);
                 // Fallback: Check if it's still legacy (in case migration missed run)
                 try {
                     decryptedPassword = decrypt(encryptedPassword, LEGACY_DEFAULT_KEY);
                 } catch {
                     // Both failed
-                    console.error(`Critical: Could not decrypt password for ${id}`);
+                    logger.error(`Critical: could not decrypt password for source ${id} with any key`);
                 }
             }
         }
@@ -278,8 +282,10 @@ export const configStore = {
         };
 
         if (index >= 0) {
+            logger.debug(`Updating existing source ${source.id} (${source.platform})`);
             stored[index] = newEntry;
         } else {
+            logger.info(`Saving new source ${source.id} (${source.platform} — ${source.host}:${source.port})`);
             stored.push(newEntry);
         }
 
@@ -288,6 +294,7 @@ export const configStore = {
 
     delete(id: string) {
         if (!fs.existsSync(CONFIG_FILE)) return;
+        logger.info(`Deleting source ${id} from config store`);
         let stored: StoredSource[] = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
         stored = stored.filter(s => s.id !== id);
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(stored, null, 2));

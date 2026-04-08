@@ -1,4 +1,7 @@
 import { configStore } from './config-store';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('TokenManager');
 
 interface TokenCache {
     accessToken: string;
@@ -51,17 +54,18 @@ export const tokenManager = {
 
         if (cached && cached.expiresAt > now + 60) {
             // Token is valid (buffer of 60s)
+            logger.debug(`Using cached token for ${sourceId} (expires in ${Math.round(cached.expiresAt - now)}s)`);
             return cached.accessToken;
         }
 
         // 2. Check overlap (In-flight request)
         if (authPromises.has(sourceId)) {
-            console.log(`[TokenManager] Reusing in-flight auth request for ${sourceId}`);
+            logger.debug(`Reusing in-flight auth request for ${sourceId}`);
             return authPromises.get(sourceId)!;
         }
 
         // 3. Refresh / Re-login
-        console.log(`[TokenManager] Token for ${sourceId} missing or expired. Authenticating...`);
+        logger.info(`Token for ${sourceId} missing or expired — authenticating`);
 
         // Create a new promise and store it
         const promise = this.authenticate(sourceId).finally(() => {
@@ -77,10 +81,11 @@ export const tokenManager = {
      * Forces a new authentication (useful if 401 is received despite cached token)
      */
     async refreshToken(sourceId: string): Promise<string | null> {
-        console.log(`[TokenManager] Forcing refresh for ${sourceId}`);
+        logger.info(`Forcing token refresh for ${sourceId}`);
         tokenCache.delete(sourceId); // Clear cache
 
         if (authPromises.has(sourceId)) {
+            logger.debug(`Reusing in-flight auth request for ${sourceId}`);
             return authPromises.get(sourceId)!;
         }
 
@@ -98,7 +103,7 @@ export const tokenManager = {
     async authenticate(sourceId: string): Promise<string | null> {
         const source = configStore.getById(sourceId);
         if (!source || !source.password) {
-            console.error(`[TokenManager] Source ${sourceId} not found or missing credentials.`);
+            logger.error(`Source ${sourceId} not found or missing credentials`);
             return null;
         }
 
@@ -106,7 +111,7 @@ export const tokenManager = {
         const config = authConfigs[platform as keyof typeof authConfigs];
 
         if (!config) {
-            console.error(`[TokenManager] Unsupported platform: ${platform}`);
+            logger.error(`Unsupported platform: ${platform} (sourceId=${sourceId})`);
             return null;
         }
 
@@ -114,7 +119,7 @@ export const tokenManager = {
         const loginUrl = `${baseUrl}${config.authPath}`;
 
         try {
-            console.log(`[TokenManager] Logging into ${loginUrl} as ${source.username} (platform: ${platform})`);
+            logger.info(`Logging into ${loginUrl} as ${source.username} (platform=${platform})`);
 
             // Standard OAuth2 Password Grant
             const body = new URLSearchParams();
@@ -130,8 +135,7 @@ export const tokenManager = {
 
             if (!response.ok) {
                 const text = await response.text();
-                // 429 Handling is implicit here, but logging is good
-                console.error(`[TokenManager] Login failed: ${response.status} ${text}`);
+                logger.error(`Login failed for ${sourceId}: HTTP ${response.status} — ${text}`);
                 return null;
             }
 
@@ -140,7 +144,7 @@ export const tokenManager = {
             const expiresIn = data.expires_in; // seconds
 
             if (!accessToken) {
-                console.error('[TokenManager] No access token in response');
+                logger.error(`No access_token in auth response for ${sourceId}`);
                 return null;
             }
 
@@ -150,11 +154,11 @@ export const tokenManager = {
                 expiresAt: (Date.now() / 1000) + (expiresIn || 3600)
             });
 
-            console.log(`[TokenManager] Successfully authenticated ${sourceId}`);
+            logger.info(`Successfully authenticated ${sourceId} (expires in ${expiresIn ?? 3600}s)`);
             return accessToken;
 
         } catch (error) {
-            console.error('[TokenManager] Auth error:', error);
+            logger.error(`Auth error for ${sourceId}`, error);
             return null;
         }
     }
