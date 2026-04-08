@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
 import { configStore } from '@/lib/server/config-store';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/License');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log('[License] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(`${baseUrl}/api/v1/license`, {
@@ -85,7 +88,7 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Proxy Error:', error);
+        logger.error('Proxy Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

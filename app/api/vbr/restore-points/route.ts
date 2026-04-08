@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { VeeamRestorePoint, VeeamBackup, VeeamBackupFile } from '@/lib/types/veeam';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/RestorePoints');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -67,10 +70,10 @@ export async function GET(request: NextRequest) {
         });
 
         if (objectId) {
-            console.log(`Fetching restore points for objectId: ${objectId} using /backupObjects endpoint...`);
+            logger.debug(`Fetching restore points for objectId: ${objectId} using /backupObjects endpoint...`);
             url = `${baseUrl}/api/v1/backupObjects/${objectId}/restorePoints?${rpQueryParams.toString()}`;
         } else if (backupId) {
-            console.log(`Fetching restore points for backupId: ${backupId} using filter...`);
+            logger.debug(`Fetching restore points for backupId: ${backupId} using filter...`);
             rpQueryParams.append('filter', `backupId eq "${backupId}"`);
             url = `${baseUrl}/api/v1/restorePoints?${rpQueryParams.toString()}`;
         } else {
@@ -85,7 +88,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (rpResponse.status === 401 && sourceId) {
-            console.log('[RestorePoints] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 headers['Authorization'] = `Bearer ${newToken}`;
@@ -97,7 +100,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (!rpResponse.ok) {
-            console.error(`Failed to fetch restore points from ${url}:`, await rpResponse.text());
+            logger.error(`Failed to fetch restore points from ${url}:`, await rpResponse.text());
             // If strict endpoint fails, return empty rather than crash.
             return NextResponse.json({ data: [] });
         }
@@ -140,7 +143,7 @@ export async function GET(request: NextRequest) {
                 }
 
             } catch (e) {
-                console.error(`Failed to enrich info for backup ${bId}`, e);
+                logger.error(`Failed to enrich info for backup ${bId}`, e);
             }
         }));
 
@@ -182,7 +185,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error fetching/enriching restore points:', error);
+        logger.error('Error fetching/enriching restore points:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch restore points' },
             { status: 500 }

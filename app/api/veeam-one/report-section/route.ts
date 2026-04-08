@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { veeamOneClient } from '@/lib/api/veeam-one-client'
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VeeamONE/Reports');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +26,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(data || { items: [], totalCount: 0 })
     } catch (error) {
-        console.error('[API] Error fetching report section:', error)
+        logger.error('Error fetching report section:', error)
         return NextResponse.json(
             { error: 'Failed to fetch report section data' },
             { status: 500 }

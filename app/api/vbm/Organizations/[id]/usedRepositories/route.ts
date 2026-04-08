@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
 import type { VBMUsedRepositoriesResponse } from '@/lib/types/vbm';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Organizations');
+
 
 export async function GET(
     request: Request,
@@ -44,7 +47,7 @@ export async function GET(
         const data: VBMUsedRepositoriesResponse = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM ORG REPOS] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json({ error: 'Failed to fetch VBM used repositories' }, { status: 500 });
     }
 }

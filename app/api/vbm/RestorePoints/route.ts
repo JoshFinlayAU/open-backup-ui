@@ -3,6 +3,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/RestorePoints');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +24,7 @@ export async function GET(request: NextRequest) {
         const endpoint = `/v8/RestorePoints?${searchParams.toString()}`;
         const fullUrl = `${config.baseUrl}${endpoint}`;
 
-        console.log('[VBM RESTORE POINTS] Fetching from:', fullUrl);
+        logger.debug('Fetching from:', fullUrl);
 
         let response = await fetch(fullUrl, {
             method: 'GET',
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM RESTORE POINTS] API error:', response.status, errorText);
+            logger.error('API error:', response.status, errorText);
             return NextResponse.json(
                 { error: `VBM365 API error: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[VBM RESTORE POINTS] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch VBM restore points' },
             { status: 500 }

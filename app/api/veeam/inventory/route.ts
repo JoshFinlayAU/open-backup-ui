@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Inventory');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +59,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (response.status === 401 && sourceId) {
-            console.log('401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(fullUrl, {
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching inventory:', error);
+        logger.error('Error fetching inventory:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch inventory' },
             { status: 500 }

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Inventory');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -71,11 +74,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        console.log(`[Inventory Lookup] Searching for workload: "${name}"`);
+        logger.debug(`Searching for workload: "${name}"`);
 
         // Call our internal inventory proxy to get the inventory root
         const inventoryUrl = `${baseInternalUrl}/api/veeam/inventory`;
-        console.log(`[Inventory Lookup] Calling internal proxy: ${inventoryUrl}`);
+        logger.debug(`Calling internal proxy: ${inventoryUrl}`);
 
         let inventoryResponse;
         try {
@@ -88,7 +91,7 @@ export async function POST(request: NextRequest) {
                 body: JSON.stringify({}),
             });
         } catch (fetchError) {
-            console.error('[Inventory Lookup] Fetch error on inventory proxy:', fetchError);
+            logger.error('Fetch error on inventory proxy:', fetchError);
             return NextResponse.json(
                 { error: 'Network error connecting to inventory proxy', workload: null },
                 { status: 502 }
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
 
         if (!inventoryResponse.ok) {
             const errorText = await inventoryResponse.text().catch(() => '');
-            console.error(`[Inventory Lookup] Inventory proxy failed: ${inventoryResponse.status} - ${errorText}`);
+            logger.error(`Inventory proxy failed: ${inventoryResponse.status} - ${errorText}`);
             return NextResponse.json(
                 { error: `Failed to query inventory: ${inventoryResponse.status}`, workload: null },
                 { status: inventoryResponse.status }
@@ -105,14 +108,14 @@ export async function POST(request: NextRequest) {
         }
 
         const inventoryData = await inventoryResponse.json();
-        console.log(`[Inventory Lookup] Inventory root returned ${inventoryData.data?.length || 0} items`);
+        logger.debug(`Inventory root returned ${inventoryData.data?.length || 0} items`);
 
         // Find vCenter servers
         const vCenters = inventoryData.data?.filter((item: { type: string }) =>
             item.type === 'vCenterServer'
         ) || [];
 
-        console.log(`[Inventory Lookup] Found ${vCenters.length} vCenters`);
+        logger.debug(`Found ${vCenters.length} vCenters`);
 
         if (vCenters.length === 0) {
             return NextResponse.json(
@@ -124,7 +127,7 @@ export async function POST(request: NextRequest) {
         // Try each vCenter to find the workload by name
         for (const vCenter of vCenters) {
             const searchUrl = `${baseInternalUrl}/api/veeam/inventory/${vCenter.hostName}`;
-            console.log(`[Inventory Lookup] Searching vCenter: ${vCenter.hostName} for "${name}"`);
+            logger.debug(`Searching vCenter: ${vCenter.hostName} for "${name}"`);
 
             // Build filter to search VMs by name
             const filterBody = {
@@ -160,15 +163,15 @@ export async function POST(request: NextRequest) {
 
                 if (searchResponse.ok) {
                     const searchData = await searchResponse.json();
-                    console.log(`[Inventory Lookup] vCenter ${vCenter.hostName} returned ${searchData.data?.length || 0} results`);
+                    logger.debug(`vCenter ${vCenter.hostName} returned ${searchData.data?.length || 0} results`);
 
                     if (searchData.data && searchData.data.length > 0) {
                         const workload = searchData.data[0] as InventoryItem;
-                        console.log(`[Inventory Lookup] Found workload: ${workload.name}`);
+                        logger.debug(`Found workload: ${workload.name}`);
 
                         // Parse URN to get datacenter and cluster IDs
                         const { datacenterId, clusterId, esxHostId } = parseUrn(workload.urn || '');
-                        console.log(`[Inventory Lookup] Parsed URN - DC: ${datacenterId}, Cluster: ${clusterId}, ESX: ${esxHostId}`);
+                        logger.debug(`Parsed URN - DC: ${datacenterId}, Cluster: ${clusterId}, ESX: ${esxHostId}`);
 
                         // Resolve Datacenter and Cluster names
                         let datacenterName: string | null = null;
@@ -219,7 +222,7 @@ export async function POST(request: NextRequest) {
                                     const resolveData = await resolveResponse.json();
                                     const items = resolveData.data as InventoryItem[] || [];
 
-                                    console.log(`[Inventory Lookup] Resolve query returned ${items.length} DC/Cluster/Host items`);
+                                    logger.debug(`Resolve query returned ${items.length} DC/Cluster/Host items`);
 
                                     // Find Datacenter by objectId
                                     if (datacenterId) {
@@ -228,7 +231,7 @@ export async function POST(request: NextRequest) {
                                         );
                                         if (dc) {
                                             datacenterName = dc.name;
-                                            console.log(`[Inventory Lookup] Resolved DC: ${datacenterId} -> ${datacenterName}`);
+                                            logger.debug(`Resolved DC: ${datacenterId} -> ${datacenterName}`);
                                         }
                                     }
 
@@ -239,7 +242,7 @@ export async function POST(request: NextRequest) {
                                         );
                                         if (cluster) {
                                             clusterName = cluster.name;
-                                            console.log(`[Inventory Lookup] Resolved Cluster: ${clusterId} -> ${clusterName}`);
+                                            logger.debug(`Resolved Cluster: ${clusterId} -> ${clusterName}`);
                                         }
                                     }
 
@@ -250,12 +253,12 @@ export async function POST(request: NextRequest) {
                                         );
                                         if (esxHost) {
                                             esxHostName = esxHost.name;
-                                            console.log(`[Inventory Lookup] Resolved ESX: ${esxHostId} -> ${esxHostName}`);
+                                            logger.debug(`Resolved ESX: ${esxHostId} -> ${esxHostName}`);
                                         }
                                     }
                                 }
                             } catch (resolveErr) {
-                                console.warn('[Inventory Lookup] Error resolving DC/Cluster names:', resolveErr);
+                                logger.warn('Error resolving DC/Cluster names:', resolveErr);
                             }
                         }
 
@@ -269,16 +272,16 @@ export async function POST(request: NextRequest) {
                     }
                 } else {
                     const errText = await searchResponse.text().catch(() => '');
-                    console.warn(`[Inventory Lookup] vCenter ${vCenter.hostName} search failed: ${searchResponse.status} - ${errText}`);
+                    logger.warn(`vCenter ${vCenter.hostName} search failed: ${searchResponse.status} - ${errText}`);
                 }
             } catch (err) {
-                console.warn(`[Inventory Lookup] Error querying vCenter ${vCenter.hostName}:`, err);
+                logger.warn(`Error querying vCenter ${vCenter.hostName}:`, err);
                 // Continue to next vCenter
             }
         }
 
         // If name search didn't find anything, log it
-        console.log(`[Inventory Lookup] Workload not found: name="${name}"`);
+        logger.debug(`Workload not found: name="${name}"`);
 
         return NextResponse.json(
             { error: 'Workload not found in inventory', workload: null },
@@ -286,7 +289,7 @@ export async function POST(request: NextRequest) {
         );
 
     } catch (error) {
-        console.error('[INVENTORY LOOKUP] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

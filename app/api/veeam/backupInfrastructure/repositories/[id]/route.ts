@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Repositories');
+
 
 const API_BASE_URL = process.env.VEEAM_API_URL;
 
@@ -39,7 +42,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
         return NextResponse.json(JSON.parse(text));
     } catch (error) {
-        console.error(`Failed to delete repository ${id}:`, error);
+        logger.error(`Failed to delete repository ${id}:`, error);
         return new NextResponse('Internal Server Error', { status: 500 });
     }
 }

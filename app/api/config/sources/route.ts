@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { configStore, VBRSource } from '@/lib/server/config-store';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Config/Sources');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +24,7 @@ export async function GET() {
                 username: process.env.VEEAM_USERNAME || 'Administrator',
             } as VBRSource);
         } catch (e) {
-            console.error('Invalid VBR Env URL:', e);
+            logger.error('Invalid VBR Env URL:', e);
         }
     }
 
@@ -39,7 +42,7 @@ export async function GET() {
                 username: 'Environment Variable',
             } as VBRSource);
         } catch (e) {
-            console.error('Invalid VBM Env URL:', e);
+            logger.error('Invalid VBM Env URL:', e);
         }
     }
 
@@ -58,7 +61,7 @@ export async function GET() {
                 hasCredentials: !!process.env.VEEAM_ONE_PASSWORD
             } as VBRSource);
         } catch (e) {
-            console.error('Invalid Veeam ONE Env URL:', e);
+            logger.error('Invalid Veeam ONE Env URL:', e);
         }
     }
 
@@ -77,7 +80,7 @@ export async function GET() {
                 hasCredentials: !!process.env.PROXMOX_PASSWORD
             } as VBRSource);
         } catch (e) {
-            console.error('Invalid Proxmox Env URL:', e);
+            logger.error('Invalid Proxmox Env URL:', e);
         }
     }
 
@@ -96,7 +99,7 @@ export async function GET() {
                 hasCredentials: !!process.env.PBS_PASSWORD
             } as VBRSource);
         } catch (e) {
-            console.error('Invalid PBS Env URL:', e);
+            logger.error('Invalid PBS Env URL:', e);
         }
     }
 

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { proxmoxClient } from '@/lib/api/proxmox-client';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Proxmox/Nodes');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +11,7 @@ export async function GET() {
         const data = await proxmoxClient.getNodes();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[Proxmox] Nodes error:', error);
+        logger.error('Nodes error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch nodes' },
             { status: 500 }

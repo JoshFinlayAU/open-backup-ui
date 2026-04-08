@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { proxmoxClient } from '@/lib/api/proxmox-client';
 import { ProxmoxNode, ProxmoxVM, ProxmoxSummary } from '@/lib/types/proxmox';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Proxmox/Summary');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +41,7 @@ export async function GET() {
 
         return NextResponse.json(summary);
     } catch (error) {
-        console.error('[Proxmox] Summary error:', error);
+        logger.error('Summary error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch summary' },
             { status: 500 }

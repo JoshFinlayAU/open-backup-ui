@@ -2,6 +2,9 @@
 // This route proxies requests to the VRO API to avoid CORS issues
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VRO/Plans');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Get authorization header from the request
     const authHeader = request.headers.get('authorization');
-    console.log('[VRO PLANS] Request received, auth header:', authHeader ? 'Present (Bearer ...)' : 'Missing');
+    logger.debug('Request received, auth header:', authHeader ? 'Present (Bearer ...)' : 'Missing');
     
     if (!authHeader) {
       return NextResponse.json(
@@ -33,7 +36,7 @@ export async function GET(request: NextRequest) {
     const endpoint = queryString ? `/api/v7.21/Plans?${queryString}` : '/api/v7.21/Plans';
     const fullUrl = `${VRO_API_URL}${endpoint}`;
 
-    console.log('[VRO PLANS] Fetching from VRO:', fullUrl);
+    logger.debug('Fetching from VRO:', fullUrl);
 
     const response = await fetch(fullUrl, {
       method: 'GET',
@@ -44,11 +47,11 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log('[VRO PLANS] VRO response status:', response.status);
+    logger.debug('VRO response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('[VRO PLANS] VRO error:', errorText);
+      logger.debug('VRO error:', errorText);
       return NextResponse.json(
         { error: `Failed to fetch recovery plans: ${response.status} - ${errorText}` },
         { status: response.status }
@@ -56,11 +59,11 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('[VRO PLANS] Success - plans fetched:', data.data?.length || 0, 'plans');
+    logger.info('Success - plans fetched:', data.data?.length || 0, 'plans');
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching recovery plans:', error);
+    logger.error('Error fetching recovery plans:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch recovery plans' },
       { status: 500 }

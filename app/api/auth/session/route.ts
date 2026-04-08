@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getChunkedCookie, deleteChunkedCookie } from "@/lib/utils/cookie-manager"
 import { configStore } from "@/lib/server/config-store"
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Auth/Session');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -65,7 +68,7 @@ export async function GET() {
 
         return NextResponse.json(sessions)
     } catch (error) {
-        console.error("Session check error:", error)
+        logger.error("Session check error:", error)
         return NextResponse.json({})
     }
 }
@@ -82,7 +85,7 @@ export async function DELETE() {
 
         return NextResponse.json({ success: true })
     } catch (error) {
-        console.error("Clear sessions error:", error)
+        logger.error("Clear sessions error:", error)
         return NextResponse.json(
             { error: "Failed to clear sessions" },
             { status: 500 }

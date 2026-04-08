@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Repositories');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log('[RepoStates] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(url, {
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Failed to fetch repository states:', error);
+        logger.error('Failed to fetch repository states:', error);
         return new NextResponse('Internal Server Error', { status: 500 });
     }
 }

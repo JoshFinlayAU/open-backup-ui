@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
 import type { VBMJobsResponse } from '@/lib/types/vbm';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Jobs');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -33,14 +36,14 @@ export async function GET(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VBM JOBS] API error:', response.status, errorText);
+      logger.error('API error:', response.status, errorText);
       return NextResponse.json({ error: `VBM365 API error: ${response.status}` }, { status: response.status });
     }
 
     const data: VBMJobsResponse = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error('[VBM JOBS] Error:', error);
+    logger.error('Error:', error);
     return NextResponse.json({ error: 'Failed to fetch VBM jobs' }, { status: 500 });
   }
 }

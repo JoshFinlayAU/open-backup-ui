@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Proxies');
+
 
 const API_BASE_URL = process.env.VEEAM_API_URL;
 
@@ -60,7 +63,7 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ id: s
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[PROXY ID PROXY] Internal Error:', error);
+        logger.error('Internal Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

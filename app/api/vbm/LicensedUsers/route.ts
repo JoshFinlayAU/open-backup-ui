@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/LicensedUsers');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +19,7 @@ export async function GET(request: NextRequest) {
         const endpoint = `/v8/LicensedUsers${query ? `?${query}` : ''}`;
         const fullUrl = `${config.baseUrl}${endpoint}`;
 
-        console.log('[VBM LICENSED_USERS] Fetching from:', fullUrl);
+        logger.debug('Fetching from:', fullUrl);
 
         let response = await fetch(fullUrl, {
             headers: {
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
         } as RequestInit);
 
         if (response.status === 401) {
-            console.log('[VBM LICENSED_USERS] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await refreshVB365Token();
             if (newToken) {
                 response = await fetch(fullUrl, {
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM LICENSED_USERS] API error:', response.status, fullUrl, errorText);
+            logger.error('API error:', response.status, fullUrl, errorText);
             return NextResponse.json(
                 { error: `VBM API error: ${response.status}` },
                 { status: response.status }
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM LICENSED_USERS] Proxy error:', error);
+        logger.error('Proxy error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

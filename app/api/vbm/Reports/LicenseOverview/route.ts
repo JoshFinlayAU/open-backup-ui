@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Reports');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +14,7 @@ export async function POST(request: NextRequest) {
         const endpoint = `/v8/Reports/GenerateLicenseOverview`;
         const fullUrl = `${apiUrl}${endpoint}`;
 
-        console.log('[VBM LICENSE_REPORT] Generating report...');
+        logger.debug('Generating report...');
 
         const response = await fetch(fullUrl, {
             method: 'POST',
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM LICENSE_REPORT] API error:', response.status, errorText);
+            logger.error('API error:', response.status, errorText);
             return NextResponse.json(
                 { error: `VBM API error: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
             }
         });
     } catch (error) {
-        console.error('[VBM LICENSE_REPORT] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

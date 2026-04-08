@@ -1,5 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Backups');
+
 
 const API_BASE_URL = process.env.VEEAM_API_URL;
 
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[BACKUPFILES] Veeam error for ${backupId}:`, errorText);
+            logger.error(`Veeam error for ${backupId}:`, errorText);
             return NextResponse.json(
                 { error: `Failed to fetch files: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching backup files:', error);
+        logger.error('Error fetching backup files:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch backup files' },
             { status: 500 }

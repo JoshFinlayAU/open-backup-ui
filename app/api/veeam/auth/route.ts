@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getChunkedCookie } from '@/lib/utils/cookie-manager';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Auth/Veeam');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
     if (sourceId) {
       const token = await tokenManager.getToken(sourceId);
       if (token) {
-        console.log('[AUTH] Returning session token from TokenManager');
+        logger.info('Returning session token from TokenManager');
         return NextResponse.json({
           access_token: token,
           token_type: 'bearer',
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Fallback: If we have a legacy valid session cookie
     if (cookieToken) {
-      console.log('[AUTH] Returning existing session token from cookie');
+      logger.debug('Returning existing session token from cookie');
       return NextResponse.json({
         access_token: cookieToken,
         token_type: 'bearer',
@@ -70,7 +73,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { grant_type, refresh_token } = body;
 
-    console.log('[AUTH] Request received:', { grant_type });
+    logger.debug('Request received:', { grant_type });
 
     // Build authentication headers
     const headers: HeadersInit = {
@@ -112,11 +115,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data: TokenResponse = await response.json();
-    console.log('[AUTH] Success - token acquired');
+    logger.info('Success - token acquired');
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Authentication failed' },
       { status: 500 }

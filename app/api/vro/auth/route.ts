@@ -2,6 +2,9 @@
 // This route proxies authentication requests to VRO API
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VRO/Auth');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +15,7 @@ const VRO_PASSWORD = process.env.VRO_PASSWORD;
 export async function POST(request: NextRequest) {
   try {
     if (!VRO_API_URL || !VRO_USERNAME || !VRO_PASSWORD) {
-      console.error('[VRO AUTH] Missing configuration:', {
+      logger.error('Missing configuration:', {
         hasUrl: !!VRO_API_URL,
         hasUsername: !!VRO_USERNAME,
         hasPassword: !!VRO_PASSWORD,
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { grant_type, refresh_token } = body;
 
-    console.log('[VRO AUTH] Authentication request, grant_type:', grant_type);
+    logger.debug('Authentication request, grant_type:', grant_type);
 
     let authBody: Record<string, string>;
     
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const authUrl = `${VRO_API_URL}/api/token`;
-    console.log('[VRO AUTH] Authenticating with VRO at:', authUrl);
+    logger.debug('Authenticating with VRO at:', authUrl);
 
     // Create FormData for application/x-www-form-urlencoded as per VRO API spec
     const formData = new URLSearchParams();
@@ -61,11 +64,11 @@ export async function POST(request: NextRequest) {
       body: formData.toString(),
     });
 
-    console.log('[VRO AUTH] Response status:', response.status);
+    logger.debug('Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VRO AUTH] Authentication failed:', errorText);
+      logger.error('Authentication failed:', errorText);
       return NextResponse.json(
         { error: `VRO authentication failed: ${response.status}` },
         { status: response.status }
@@ -73,11 +76,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('[VRO AUTH] Authentication successful');
+    logger.info('Authentication successful');
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('[VRO AUTH] Error:', error);
+    logger.error('Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'VRO authentication failed' },
       { status: 500 }

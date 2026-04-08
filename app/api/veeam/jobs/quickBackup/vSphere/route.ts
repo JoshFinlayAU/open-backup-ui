@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Jobs');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: 'Quick Backup initiated successfully' });
 
     } catch (error: unknown) {
-        console.error('Error starting quick backup:', error);
+        logger.error('Error starting quick backup:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal server error' },
             { status: 500 }

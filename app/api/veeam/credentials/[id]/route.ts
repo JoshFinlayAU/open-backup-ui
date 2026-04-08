@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Credentials');
+
 
 const API_BASE_URL = process.env.VEEAM_API_URL;
 
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching credential:', error);
+        logger.error('Error fetching credential:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch credential' },
             { status: 500 }

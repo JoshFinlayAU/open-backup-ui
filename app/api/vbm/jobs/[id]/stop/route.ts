@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Jobs');
+
 
 const VBM_API_URL = process.env.VBM_API_URL;
 
@@ -25,7 +28,7 @@ export async function POST(
         const { id } = await params;
         const fullUrl = `${VBM_API_URL}/v8/Jobs/${id}/stop`;
 
-        console.log('[VBM JOB] Stopping job:', fullUrl);
+        logger.debug('Stopping job:', fullUrl);
 
         const response = await fetch(fullUrl, {
             method: 'POST',
@@ -43,7 +46,7 @@ export async function POST(
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM JOB] Stop failed:', response.status, errorText);
+            logger.error('Stop failed:', response.status, errorText);
             return NextResponse.json(
                 { error: `VBM API error: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -54,7 +57,7 @@ export async function POST(
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[VBM JOB] Error stopping job:', error);
+        logger.error('Error stopping job:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to stop job' },
             { status: 500 }

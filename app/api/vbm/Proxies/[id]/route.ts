@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Proxies');
+
 
 interface RouteContext {
     params: Promise<{ id: string }>;
@@ -25,7 +28,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         }
 
         const fullUrl = `${apiUrl}${endpoint}`;
-        console.log('[VBM PROXIES] Action:', action, 'for:', id);
+        logger.debug('Action:', action, 'for:', id);
 
         const response = await fetch(fullUrl, {
             method: 'POST',
@@ -37,7 +40,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM PROXIES] Action error:', response.status, errorText);
+            logger.error('Action error:', response.status, errorText);
             return NextResponse.json(
                 { error: `VBM API error: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -46,7 +49,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('[VBM PROXIES] Action error:', error);
+        logger.error('Action error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

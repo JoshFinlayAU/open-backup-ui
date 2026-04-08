@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Backups');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +58,7 @@ export async function GET(
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log(`[BackupFiles ${id}] 401 received, refreshing token...`);
+            logger.debug(`[BackupFiles ${id}] 401 received, refreshing token...`);
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(fullUrl, {
@@ -72,7 +75,7 @@ export async function GET(
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`Failed to fetch backup files for backup ${id}:`, errorText);
+            logger.error(`Failed to fetch backup files for backup ${id}:`, errorText);
             return NextResponse.json(
                 { error: `Veeam API error: ${response.status}` },
                 { status: response.status }
@@ -83,7 +86,7 @@ export async function GET(
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching backup files:', error);
+        logger.error('Error fetching backup files:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch backup files' },
             { status: 500 }

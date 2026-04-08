@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Jobs');
+
 
 export async function GET(
   request: NextRequest,
@@ -61,7 +64,7 @@ export async function GET(
 
     // Auto-refresh mechanism
     if (response.status === 401 && sourceId) {
-      console.log(`[JOB ${id}] 401 received, refreshing token...`);
+      logger.debug(`401 received, refreshing token...`);
       const newToken = await tokenManager.refreshToken(sourceId);
       if (newToken) {
         response = await fetch(url, {
@@ -88,7 +91,7 @@ export async function GET(
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching job:', error);
+    logger.error('Error fetching job:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch job' },
       { status: 500 }
@@ -158,7 +161,7 @@ export async function POST(
 
     // Auto-refresh mechanism
     if (response.status === 401 && sourceId) {
-      console.log(`[JOB ${id} ACTION] 401 received, refreshing token...`);
+      logger.debug(`401 received, refreshing token...`);
       const newToken = await tokenManager.refreshToken(sourceId);
       if (newToken) {
         response = await fetch(url, {
@@ -185,7 +188,7 @@ export async function POST(
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Error performing job action:', error);
+    logger.error('Error performing job action:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to perform job action' },
       { status: 500 }

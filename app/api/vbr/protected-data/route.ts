@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { BackupObjectsResult, VeeamProtectedWorkload } from '@/lib/types/veeam';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/ProtectedData');
+
 
 export const dynamic = 'force-dynamic'; // Prevent caching so data is fresh
 
@@ -52,12 +55,12 @@ export async function GET(request: NextRequest) {
         const forceRefresh = searchParams.get('refresh') === 'true';
 
         if (cachedData && !forceRefresh && (now - cachedData.timestamp < CACHE_TTL)) {
-            console.log('Serving protected data from cache');
+            logger.debug('Serving protected data from cache');
             return NextResponse.json({ data: cachedData.data });
         }
 
         // Use the optimized /backupObjects endpoint
-        console.log('Fetching protected objects from /backupObjects...');
+        logger.debug('Fetching protected objects from /backupObjects...');
         let response = await fetch(`${baseUrl}/api/v1/backupObjects?limit=1000`, {
             method: 'GET',
             headers: {
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log('[ProtectedData] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(`${baseUrl}/api/v1/backupObjects?limit=1000`, {
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (!response.ok) {
-            console.error('Failed to fetch backup objects:', await response.text());
+            logger.error('Failed to fetch backup objects:', await response.text());
             return NextResponse.json({ data: [] });
         }
 
@@ -107,7 +110,7 @@ export async function GET(request: NextRequest) {
             timestamp: Date.now()
         };
 
-        console.log(`Cached ${protectedWorkloads.length} protected workloads`);
+        logger.debug(`Cached ${protectedWorkloads.length} protected workloads`);
 
         return NextResponse.json({
             data: protectedWorkloads,
@@ -115,7 +118,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Error fetching protected data:', error);
+        logger.error('Error fetching protected data:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch protected data' },
             { status: 500 }

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Sessions');
+
 
 export async function GET(
     request: NextRequest,
@@ -69,7 +72,7 @@ export async function GET(
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching task sessions:', error);
+        logger.error('Error fetching task sessions:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch task sessions' },
             { status: 500 }

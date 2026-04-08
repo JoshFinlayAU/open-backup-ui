@@ -1,5 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Backups');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[BACKUPS] Veeam error:', errorText);
+            logger.error('Veeam error:', errorText);
             return NextResponse.json(
                 { error: `Failed to fetch backups: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching backups:', error);
+        logger.error('Error fetching backups:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch backups' },
             { status: 500 }

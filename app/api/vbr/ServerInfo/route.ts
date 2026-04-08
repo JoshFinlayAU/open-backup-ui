@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/ServerInfo');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log('[ServerInfo] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 response = await fetch(fullUrl, {
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('Error fetching server info:', error);
+        logger.error('Error fetching server info:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch server info' },
             { status: 500 }

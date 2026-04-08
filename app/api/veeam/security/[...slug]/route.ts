@@ -1,5 +1,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Security');
+
 
 const API_BASE_URL = process.env.VEEAM_API_URL;
 
@@ -36,7 +39,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: { slug: 
 
         const fullUrl = `${API_BASE_URL}${endpoint}`;
 
-        console.log(`[SECURITY] Proxying ${request.method} to:`, fullUrl);
+        logger.debug(`Proxying ${request.method} to:`, fullUrl);
 
         // Prepare body for non-GET/HEAD requests
         let body = undefined;
@@ -64,7 +67,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: { slug: 
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.log(`[SECURITY] Veeam error (${response.status}):`, errorText);
+            logger.debug(`Veeam error (${response.status}):`, errorText);
             try {
                 const errorJson = JSON.parse(errorText);
                 return NextResponse.json(errorJson, { status: response.status });
@@ -91,7 +94,7 @@ async function proxyRequest(request: NextRequest, { params }: { params: { slug: 
         return new NextResponse(textData, { status: 200 });
 
     } catch (error) {
-        console.error('[SECURITY] Proxy error:', error);
+        logger.error('Proxy error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

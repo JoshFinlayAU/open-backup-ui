@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
 import { VeeamBackupFile } from '@/lib/types/veeam';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/StorageCapacity');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        console.log('[StorageCapacity] Fetching backups...');
+        logger.debug('Fetching backups...');
 
         // 1. Fetch Backups directly
         let backupsRes = await fetch(`${baseUrl}/api/v1/backups?limit=500`, {
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest) {
 
         // Auto-refresh mechanism
         if (backupsRes.status === 401 && sourceId) {
-            console.log('[StorageCapacity] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 token = newToken; // Update local token variable used for subsequent calls
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
         if (!backupsRes.ok) throw new Error(`Failed to fetch backups: ${backupsRes.status}`);
         const backupsData = await backupsRes.json();
         const backups = backupsData.data || [];
-        console.log(`[StorageCapacity] Found ${backups.length} backups`);
+        logger.debug(`Found ${backups.length} backups`);
 
         // 2. Fetch files for each backup
         const backupFilesPromises: (() => Promise<VeeamBackupFile[]>)[] = backups.map((backup: { id: string }) => async () => {
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
                     if (filesRes.status === 401) {
                         // If token expired mid-process (unlikely given we just refreshed, but possible if long running)
                         // We fail gracefully here rather than complexity of re-refreshing loop in map
-                        console.warn(`Token expired while fetching files for backup ${backup.id}`);
+                        logger.warn(`Token expired while fetching files for backup ${backup.id}`);
                         return [];
                     }
                     return [];
@@ -94,7 +97,7 @@ export async function GET(request: NextRequest) {
                 const filesData = await filesRes.json();
                 return filesData.data || [];
             } catch (e) {
-                console.error(`Failed to fetch files for backup ${backup.id}`, e);
+                logger.error(`Failed to fetch files for backup ${backup.id}`, e);
                 return [];
             }
         });
@@ -143,7 +146,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(result);
 
     } catch (error) {
-        console.error('Error calculating storage capacity:', error);
+        logger.error('Error calculating storage capacity:', error);
         return NextResponse.json(
             { error: 'Failed to calculate storage capacity' },
             { status: 500 }

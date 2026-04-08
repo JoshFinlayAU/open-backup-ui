@@ -2,6 +2,9 @@
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
 import type { VBMJobSessionsResponse } from '@/lib/types/vbm';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/JobSessions');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -32,14 +35,14 @@ export async function GET(request: Request) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM SESSIONS] API error:', response.status, errorText);
+            logger.error('API error:', response.status, errorText);
             return NextResponse.json({ error: `VBM365 API error: ${response.status}` }, { status: response.status });
         }
 
         const data: VBMJobSessionsResponse = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM SESSIONS] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json({ error: 'Failed to fetch VBM sessions' }, { status: 500 });
     }
 }

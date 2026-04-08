@@ -1,6 +1,9 @@
 // API Route for Veeam Backup for Microsoft 365 Proxies
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Proxies');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +40,7 @@ export async function GET(request: Request) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM PROXIES] Proxy error:', error);
+        logger.error('Proxy error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

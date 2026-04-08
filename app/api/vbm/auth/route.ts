@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getChunkedCookie } from '@/lib/utils/cookie-manager';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Auth/VBM');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (sourceId) {
       const token = await tokenManager.getToken(sourceId);
       if (token) {
-        console.log('[VBM AUTH] Returning session token from TokenManager');
+        logger.info('Returning session token from TokenManager');
         return NextResponse.json({
           access_token: token,
           token_type: 'bearer',
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Fallback: If we have a legacy valid session cookie
     if (cookieToken) {
-      console.log('[VBM AUTH] Returning existing session token from cookie');
+      logger.debug('Returning existing session token from cookie');
       return NextResponse.json({
         access_token: cookieToken,
         token_type: 'bearer',
@@ -58,7 +61,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { grant_type, refresh_token } = body;
 
-    console.log('[VBM AUTH] Authentication request via env vars, grant_type:', grant_type);
+    logger.debug('Authentication request via env vars, grant_type:', grant_type);
 
     let authBody: Record<string, string>;
 
@@ -92,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VBM AUTH] Authentication failed:', errorText);
+      logger.error('Authentication failed:', errorText);
       return NextResponse.json(
         { error: `VBM authentication failed: ${response.status} - ${errorText}` },
         { status: response.status }
@@ -100,11 +103,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('[VBM AUTH] Authentication successful via env vars');
+    logger.info('Authentication successful via env vars');
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('[VBM AUTH] Error:', error);
+    logger.error('Error:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'VBM authentication failed' },
       { status: 500 }

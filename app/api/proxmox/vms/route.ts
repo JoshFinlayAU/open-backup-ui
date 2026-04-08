@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { proxmoxClient } from '@/lib/api/proxmox-client';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('Proxmox/VMs');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +12,7 @@ export async function GET() {
         const data = await proxmoxClient.getClusterResources('vm');
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[Proxmox] VMs error:', error);
+        logger.error('VMs error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch VMs' },
             { status: 500 }

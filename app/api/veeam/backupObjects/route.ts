@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/BackupObjects');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +65,7 @@ async function proxy(request: NextRequest) {
         let response = await fetch(fullUrl, options);
 
         if (response.status === 401 && sourceId) {
-            console.log('[BackupObjects] 401 received, refreshing token...');
+            logger.debug('401 received, refreshing token...');
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 options.headers = {
@@ -92,7 +95,7 @@ async function proxy(request: NextRequest) {
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[BACKUP OBJECTS PROXY] Internal Error:', error);
+        logger.error('Internal Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

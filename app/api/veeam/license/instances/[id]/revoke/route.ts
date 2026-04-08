@@ -1,6 +1,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/License');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +49,7 @@ export async function POST(
         // Usually returns 204 or empty 200
         return NextResponse.json({});
     } catch (error) {
-        console.error('Proxy Error:', error);
+        logger.error('Proxy Error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

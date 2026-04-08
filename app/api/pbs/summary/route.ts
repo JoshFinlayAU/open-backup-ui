@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { pbsClient } from '@/lib/api/proxmox-client';
 import { PBSDatastore, PBSTask, PBSSummary } from '@/lib/types/proxmox';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('PBS/Summary');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +37,7 @@ export async function GET() {
 
         return NextResponse.json(summary);
     } catch (error) {
-        console.error('[PBS] Summary error:', error);
+        logger.error('Summary error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Failed to fetch PBS summary' },
             { status: 500 }

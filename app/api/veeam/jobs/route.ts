@@ -4,6 +4,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Jobs');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Auto-refresh mechanism
     if (response.status === 401 && sourceId) {
-      console.log('[JOBS] 401 received, refreshing token...');
+      logger.debug('401 received, refreshing token...');
       const newToken = await tokenManager.refreshToken(sourceId);
       if (newToken) {
         response = await fetch(fullUrl, {
@@ -87,7 +90,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error fetching backup jobs:', error);
+    logger.error('Error fetching backup jobs:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch backup jobs' },
       { status: 500 }
@@ -144,7 +147,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (response.status === 401 && sourceId) {
-      console.log('[JOBS] 401 received on POST, refreshing token...');
+      logger.debug('401 received on POST, refreshing token...');
       const newToken = await tokenManager.refreshToken(sourceId);
       if (newToken) {
         response = await fetch(fullUrl, {
@@ -167,9 +170,9 @@ export async function POST(request: NextRequest) {
       } catch {
         errorData = { message: await response.text() };
       }
-      console.error("[JOB CREATION] 400 Bad Request returned by Veeam.");
-      console.error("Payload sent:", JSON.stringify(body, null, 2));
-      console.error("Veeam Error Details:", JSON.stringify(errorData, null, 2));
+      logger.error("400 Bad Request returned by Veeam.");
+      logger.error("Payload sent:", JSON.stringify(body, null, 2));
+      logger.error("Veeam Error Details:", JSON.stringify(errorData, null, 2));
 
       return NextResponse.json(
         { error: `Failed to create backup job`, details: errorData },
@@ -181,7 +184,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error creating backup job:', error);
+    logger.error('Error creating backup job:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create backup job' },
       { status: 500 }

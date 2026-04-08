@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Repositories');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('Failed to rescan repositories:', error);
+        logger.error('Failed to rescan repositories:', error);
         return new NextResponse('Internal Server Error', { status: 500 });
     }
 }

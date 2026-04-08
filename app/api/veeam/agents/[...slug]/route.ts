@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Agents');
+
 
 async function proxy(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     try {
@@ -40,7 +43,7 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ slug:
         const endpoint = queryString ? `/api/v1/agents/${path}?${queryString}` : `/api/v1/agents/${path}`;
         const fullUrl = `${baseUrl}${endpoint}`;
 
-        console.log(`[AGENTS PROXY] ${request.method} ${fullUrl}`);
+        logger.debug(`${request.method} ${fullUrl}`);
 
         const options: RequestInit = {
             method: request.method,
@@ -63,7 +66,7 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ slug:
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log(`[AgentsProxy] 401 received for ${path}, refreshing token...`);
+            logger.debug(`401 received for ${path}, refreshing token...`);
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 options.headers = {
@@ -87,14 +90,14 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ slug:
         }
 
         if (!response.ok) {
-            console.error(`[AGENTS PROXY] Error ${response.status}:`, data);
+            logger.error(`Error ${response.status}:`, data);
             return NextResponse.json(data, { status: response.status });
         }
 
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[AGENTS PROXY] Internal Error:', error);
+        logger.error('Internal Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

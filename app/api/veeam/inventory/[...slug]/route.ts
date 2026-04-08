@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { tokenManager } from '@/lib/server/token-manager';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBR/Inventory');
+
 
 async function proxy(request: NextRequest, { params }: { params: Promise<{ slug: string[] }> }) {
     try {
@@ -60,7 +63,7 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ slug:
 
         // Auto-refresh mechanism
         if (response.status === 401 && sourceId) {
-            console.log(`[InventoryProxy] 401 received for ${path}, refreshing token...`);
+            logger.debug(`401 received for ${path}, refreshing token...`);
             const newToken = await tokenManager.refreshToken(sourceId);
             if (newToken) {
                 options.headers = {
@@ -90,7 +93,7 @@ async function proxy(request: NextRequest, { params }: { params: Promise<{ slug:
         return NextResponse.json(data);
 
     } catch (error) {
-        console.error('[INVENTORY PROXY] Internal Error:', error);
+        logger.error('Internal Error:', error);
         return NextResponse.json(
             { error: error instanceof Error ? error.message : 'Internal Server Error' },
             { status: 500 }

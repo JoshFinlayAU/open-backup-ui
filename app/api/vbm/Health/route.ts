@@ -1,6 +1,9 @@
 // API Route for Veeam Backup for Microsoft 365 Health
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/Health');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -32,14 +35,14 @@ export async function GET(request: Request) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM HEALTH] API error:', response.status, errorText);
+            logger.error('API error:', response.status, errorText);
             return NextResponse.json({ error: `VBM API error: ${response.status}` }, { status: response.status });
         }
 
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM HEALTH] Proxy error:', error);
+        logger.error('Proxy error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

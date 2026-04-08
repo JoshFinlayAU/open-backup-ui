@@ -1,6 +1,9 @@
 // API Route for Veeam Backup for Microsoft 365 Protected Teams
 import { NextResponse } from 'next/server';
 import { getVB365Config, refreshVB365Token } from '@/lib/server/vb365-helper';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/ProtectedTeams');
+
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +39,7 @@ export async function GET(request: Request) {
         const data = await response.json();
         return NextResponse.json(data);
     } catch (error) {
-        console.error('[VBM TEAMS] Error:', error);
+        logger.error('Error:', error);
         return NextResponse.json({ error: 'Failed to fetch VBM teams' }, { status: 500 });
     }
 }

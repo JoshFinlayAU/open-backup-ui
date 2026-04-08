@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+const logger = createLogger('VBM/LicensedUsers');
+
 
 interface RouteContext {
     params: Promise<{ id: string }>;
@@ -13,7 +16,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
         const endpoint = `/v8/LicensedUsers/${encodeURIComponent(id)}`;
         const fullUrl = `${apiUrl}${endpoint}`;
 
-        console.log('[VBM LICENSED_USERS] Revoking license for:', id);
+        logger.debug('Revoking license for:', id);
 
         const response = await fetch(fullUrl, {
             method: 'DELETE',
@@ -25,7 +28,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('[VBM LICENSED_USERS] Revoke error:', response.status, errorText);
+            logger.error('Revoke error:', response.status, errorText);
             return NextResponse.json(
                 { error: `VBM API error: ${response.status} - ${errorText}` },
                 { status: response.status }
@@ -34,7 +37,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('[VBM LICENSED_USERS] Revoke error:', error);
+        logger.error('Revoke error:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
