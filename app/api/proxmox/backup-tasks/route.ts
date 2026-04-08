@@ -13,6 +13,8 @@ export async function GET() {
         const nodes: ProxmoxNode[] = nodesRes?.data ?? [];
         const onlineNodes = nodes.filter((n: ProxmoxNode) => n.status === 'online');
 
+        // Fetch up to 50 backup tasks per node (vzdump type). With multiple nodes this may
+        // overshoot the final top-50 limit, but ensures we don't miss recent tasks from any node.
         const taskResults = await Promise.allSettled(
             onlineNodes.map((n: ProxmoxNode) => proxmoxClient.getNodeBackupTasks(n.node, 50))
         );

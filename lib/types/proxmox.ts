@@ -96,8 +96,10 @@ export interface ProxmoxStorageResponse {
 // ===== Proxmox Backup Server Types =====
 
 export interface PBSDatastore {
-    name: string;
+    store: string;          // Datastore name (API field is "store", not "name")
     path?: string;
+    comment?: string | null;
+    'mount-status'?: string;
     'avail'?: number;       // Available space (bytes)
     'used'?: number;        // Used space (bytes)
     'total'?: number;       // Total space (bytes)
@@ -147,11 +149,10 @@ export interface PBSTask {
     pstart?: number;
     starttime: number;
     endtime?: number;
-    type: string;
-    id?: string;
+    worker_type: string;    // e.g. "backup", "garbage_collection", "prunejob", "verificationjob"
+    worker_id?: string | null;
     user: string;
-    status?: string;
-    exitstatus?: string;
+    status?: string;        // "OK", "WARNINGS: N", or error message. Absent if still running.
 }
 
 export interface PBSNodeStatus {

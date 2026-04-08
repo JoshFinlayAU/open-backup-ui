@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Database, HardDrive, CheckCircle2, XCircle, Loader2, Clock } from "lucide-react"
+import { Database, HardDrive, CheckCircle2, XCircle, Loader2, Clock, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -26,6 +26,43 @@ function formatDuration(start: number, end?: number): string {
     if (seconds < 60) return `${seconds}s`
     if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
     return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
+}
+
+function formatWorkerType(workerType: string): string {
+    return workerType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function TaskStatusBadge({ status }: { status?: string }) {
+    if (!status) {
+        return (
+            <Badge variant="outline" className="text-xs">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Running
+            </Badge>
+        )
+    }
+    if (status === 'OK') {
+        return (
+            <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20 text-xs">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                OK
+            </Badge>
+        )
+    }
+    if (status.startsWith('WARNINGS')) {
+        return (
+            <Badge className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border-amber-500/20 text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {status}
+            </Badge>
+        )
+    }
+    return (
+        <Badge variant="destructive" className="text-xs">
+            <XCircle className="h-3 w-3 mr-1" />
+            {status}
+        </Badge>
+    )
 }
 
 export default function PBSPage() {
@@ -167,8 +204,8 @@ export default function PBSPage() {
                                             ? ((ds.used ?? 0) / ds.total) * 100
                                             : 0
                                         return (
-                                            <TableRow key={ds.name}>
-                                                <TableCell className="font-medium">{ds.name}</TableCell>
+                                            <TableRow key={ds.store}>
+                                                <TableCell className="font-medium">{ds.store}</TableCell>
                                                 <TableCell>{ds.total ? formatBytes(ds.total) : "—"}</TableCell>
                                                 <TableCell>{ds.used ? formatBytes(ds.used) : "—"}</TableCell>
                                                 <TableCell>{ds.avail ? formatBytes(ds.avail) : "—"}</TableCell>
@@ -215,8 +252,12 @@ export default function PBSPage() {
                                 <TableBody>
                                     {tasks.slice(0, 30).map((task) => (
                                         <TableRow key={task.upid}>
-                                            <TableCell className="font-medium">{task.type}</TableCell>
-                                            <TableCell className="font-mono text-xs">{task.id ?? "—"}</TableCell>
+                                            <TableCell className="font-medium">
+                                                {formatWorkerType(task.worker_type)}
+                                            </TableCell>
+                                            <TableCell className="font-mono text-xs">
+                                                {task.worker_id ?? "—"}
+                                            </TableCell>
                                             <TableCell>{task.user}</TableCell>
                                             <TableCell className="text-sm">
                                                 <div className="flex items-center gap-1">
@@ -228,22 +269,7 @@ export default function PBSPage() {
                                                 {formatDuration(task.starttime, task.endtime)}
                                             </TableCell>
                                             <TableCell>
-                                                {!task.exitstatus ? (
-                                                    <Badge variant="outline" className="text-xs">
-                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                                        Running
-                                                    </Badge>
-                                                ) : task.exitstatus === 'OK' ? (
-                                                    <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20 text-xs">
-                                                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                                                        OK
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="destructive" className="text-xs">
-                                                        <XCircle className="h-3 w-3 mr-1" />
-                                                        {task.exitstatus}
-                                                    </Badge>
-                                                )}
+                                                <TaskStatusBadge status={task.status} />
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -262,3 +288,4 @@ export default function PBSPage() {
         </div>
     )
 }
+

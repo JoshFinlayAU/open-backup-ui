@@ -18,8 +18,14 @@ export async function GET() {
         const tasks: PBSTask[] = tasksRes?.data ?? [];
 
         const recentTasks = tasks.slice(0, 20);
-        const successfulTasks = tasks.filter((t: PBSTask) => t.exitstatus === 'OK').length;
-        const failedTasks = tasks.filter((t: PBSTask) => t.exitstatus && t.exitstatus !== 'OK').length;
+
+        function isSuccessTask(t: PBSTask) { return t.status === 'OK'; }
+        function isFailedTask(t: PBSTask) {
+            return !!t.status && t.status !== 'OK' && !t.status.startsWith('WARNINGS');
+        }
+
+        const successfulTasks = tasks.filter(isSuccessTask).length;
+        const failedTasks = tasks.filter(isFailedTask).length;
 
         const totalSpace = datastores.reduce((sum: number, d: PBSDatastore) => sum + (d.total ?? 0), 0);
         const usedSpace = datastores.reduce((sum: number, d: PBSDatastore) => sum + (d.used ?? 0), 0);
