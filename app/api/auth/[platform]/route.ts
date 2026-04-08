@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { setChunkedCookie, deleteChunkedCookie } from "@/lib/utils/cookie-manager"
 import { configStore, VBRSource } from "@/lib/server/config-store"
 import { tokenManager } from "@/lib/server/token-manager"
+import { proxmoxFetch } from "@/lib/api/proxmox-fetch"
 
 // Platform-specific auth configurations
 const platformConfigs = {
@@ -270,7 +271,7 @@ export async function POST(
             formData.append("username", username);
             formData.append("password", password);
 
-            const authResponse = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+            const authResponse = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: formData.toString()
@@ -355,7 +356,7 @@ export async function POST(
             formData.append("username", username);
             formData.append("password", password);
 
-            const authResponse = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+            const authResponse = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: formData.toString()

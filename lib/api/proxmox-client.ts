@@ -3,6 +3,7 @@
 
 import { cookies } from 'next/headers';
 import { configStore } from '@/lib/server/config-store';
+import { proxmoxFetch } from '@/lib/api/proxmox-fetch';
 
 interface ProxmoxCredentials {
     baseUrl: string;
@@ -39,7 +40,7 @@ async function getProxmoxCredentials(): Promise<ProxmoxCredentials | null> {
     formData.append('password', source.password);
 
     try {
-        const res = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+        const res = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString()
@@ -81,7 +82,7 @@ async function getPBSCredentials(): Promise<ProxmoxCredentials | null> {
     formData.append('password', source.password);
 
     try {
-        const res = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+        const res = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: formData.toString()
@@ -126,7 +127,7 @@ export const proxmoxClient = {
         const creds = await getProxmoxCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -137,7 +138,7 @@ export const proxmoxClient = {
         const creds = await getProxmoxCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes/${node}/qemu`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes/${node}/qemu`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -148,7 +149,7 @@ export const proxmoxClient = {
         const creds = await getProxmoxCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes/${node}/lxc`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes/${node}/lxc`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -160,7 +161,7 @@ export const proxmoxClient = {
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
         const params = type ? `?type=${type}` : '';
-        const res = await fetch(`${creds.baseUrl}/api2/json/cluster/resources${params}`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/cluster/resources${params}`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -171,7 +172,7 @@ export const proxmoxClient = {
         const creds = await getProxmoxCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/cluster/status`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/cluster/status`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -182,7 +183,7 @@ export const proxmoxClient = {
         const creds = await getProxmoxCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox VE');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes/${node}/tasks?limit=${limit}`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes/${node}/tasks?limit=${limit}`, {
             headers: proxmoxHeaders(creds)
         });
         if (!res.ok) throw new Error(`Proxmox API error: ${res.status}`);
@@ -197,7 +198,7 @@ export const pbsClient = {
         const creds = await getPBSCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/admin/datastore`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/admin/datastore`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
@@ -208,7 +209,7 @@ export const pbsClient = {
         const creds = await getPBSCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/status`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/status`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
@@ -219,7 +220,7 @@ export const pbsClient = {
         const creds = await getPBSCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/groups`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/groups`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
@@ -231,7 +232,7 @@ export const pbsClient = {
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
         const params = new URLSearchParams({ 'backup-type': backupType, 'backup-id': backupId });
-        const res = await fetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/snapshots?${params}`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/admin/datastore/${datastore}/snapshots?${params}`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
@@ -242,7 +243,7 @@ export const pbsClient = {
         const creds = await getPBSCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes/${node}/tasks?limit=${limit}`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes/${node}/tasks?limit=${limit}`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
@@ -253,7 +254,7 @@ export const pbsClient = {
         const creds = await getPBSCredentials();
         if (!creds) throw new Error('Not authenticated to Proxmox Backup Server');
 
-        const res = await fetch(`${creds.baseUrl}/api2/json/nodes/${node}/status`, {
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/nodes/${node}/status`, {
             headers: pbsHeaders(creds)
         });
         if (!res.ok) throw new Error(`PBS API error: ${res.status}`);
