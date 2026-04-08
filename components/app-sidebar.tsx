@@ -145,6 +145,24 @@ const k10Items = [
   },
 ]
 
+// Proxmox VE Group
+const proxmoxItems = [
+  {
+    title: "Overview",
+    href: "/proxmox",
+    icon: Server,
+  },
+]
+
+// Proxmox Backup Server Group
+const pbsItems = [
+  {
+    title: "Overview",
+    href: "/pbs",
+    icon: Database,
+  },
+]
+
 // Analytics Group - Veeam ONE
 const analyticsItems = [
   {
@@ -191,6 +209,14 @@ const documentationItems = [
     title: "Kasten K10",
     href: "https://docs.kasten.io/",
   },
+  {
+    title: "Proxmox VE",
+    href: "https://pve.proxmox.com/pve-docs/",
+  },
+  {
+    title: "Proxmox Backup Server",
+    href: "https://pbs.proxmox.com/docs/",
+  },
 ]
 
 // Administration Group
@@ -236,6 +262,8 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   vb365Configured?: boolean
   vroConfigured?: boolean
   veeamOneConfigured?: boolean
+  proxmoxConfigured?: boolean
+  pbsConfigured?: boolean
 }
 
 export function AppSidebar({
@@ -243,6 +271,8 @@ export function AppSidebar({
   vb365Configured = true,
   vroConfigured = true,
   veeamOneConfigured = true,
+  proxmoxConfigured = true,
+  pbsConfigured = true,
   ...props
 }: AppSidebarProps) {
   const pathname = usePathname()
@@ -508,6 +538,68 @@ export function AppSidebar({
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Proxmox VE Group */}
+        <SidebarGroup>
+          <div className="flex items-center justify-between pr-2">
+            <SidebarGroupLabel className="group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:mt-0">
+              <span className="group-data-[collapsible=icon]:hidden">{sectionNames.proxmox}</span>
+              <span className="hidden group-data-[collapsible=icon]:block font-bold">&mdash;</span>
+            </SidebarGroupLabel>
+            {!proxmoxConfigured && (
+              <SidebarMenuBadge className="static translate-x-0 opacity-70 border border-slate-400 text-slate-500 bg-transparent h-5 min-w-0 px-1.5 w-auto">
+                Missing
+              </SidebarMenuBadge>
+            )}
+          </div>
+          {proxmoxConfigured && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {proxmoxItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
+                      <Link href={item.href}>
+                        {item.icon && <item.icon className="h-4 w-4" />}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        {/* Proxmox Backup Server Group */}
+        <SidebarGroup>
+          <div className="flex items-center justify-between pr-2">
+            <SidebarGroupLabel className="group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:mt-0">
+              <span className="group-data-[collapsible=icon]:hidden">{sectionNames.pbs}</span>
+              <span className="hidden group-data-[collapsible=icon]:block font-bold">&mdash;</span>
+            </SidebarGroupLabel>
+            {!pbsConfigured && (
+              <SidebarMenuBadge className="static translate-x-0 opacity-70 border border-slate-400 text-slate-500 bg-transparent h-5 min-w-0 px-1.5 w-auto">
+                Missing
+              </SidebarMenuBadge>
+            )}
+          </div>
+          {pbsConfigured && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {pbsItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
+                      <Link href={item.href}>
+                        {item.icon && <item.icon className="h-4 w-4" />}
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
         </SidebarGroup>
 
         {/* Administration Group */}

@@ -38,6 +38,18 @@ export default async function AppLayout({
         process.env.VEEAM_ONE_API_URL
     );
 
+    const proxmoxConfigured = !!(
+        storedSources.some(s => s.platform === 'proxmox') ||
+        cookieStore.get('proxmox_source_id') ||
+        process.env.PROXMOX_API_URL
+    );
+
+    const pbsConfigured = !!(
+        storedSources.some(s => s.platform === 'pbs') ||
+        cookieStore.get('pbs_source_id') ||
+        process.env.PBS_API_URL
+    );
+
     return (
         <SectionNamesProvider>
             <SidebarProvider>
@@ -46,6 +58,8 @@ export default async function AppLayout({
                     vb365Configured={vb365Configured}
                     vroConfigured={vroConfigured}
                     veeamOneConfigured={veeamOneConfigured}
+                    proxmoxConfigured={proxmoxConfigured}
+                    pbsConfigured={pbsConfigured}
                 />
                 <SidebarInset>
                     <AppHeader />

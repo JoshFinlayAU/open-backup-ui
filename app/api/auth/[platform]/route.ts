@@ -35,6 +35,16 @@ const platformConfigs = {
         authPath: "/api/v1/auth",
         grantType: "password",
         tokenCookie: "kasten_token"
+    },
+    proxmox: {
+        authPath: "/api2/json/access/ticket",
+        grantType: "password",
+        tokenCookie: "proxmox_ticket"
+    },
+    pbs: {
+        authPath: "/api2/json/access/ticket",
+        grantType: "password",
+        tokenCookie: "pbs_ticket"
     }
 }
 
@@ -243,6 +253,176 @@ export async function POST(
             return NextResponse.json({ success: true, sourceId });
         }
 
+        // === PROXMOX VE: Ticket-based auth ===
+        if (platform === "proxmox") {
+            let host = url.replace(/https?:\/\//, '').replace(/\/$/, '');
+            let port = 8006;
+            if (host.includes(':')) {
+                const parts = host.split(':');
+                host = parts[0];
+                port = parseInt(parts[1], 10);
+            }
+
+            const sourceId = `proxmox-${host}-${port}`;
+            const baseUrl = `https://${host}:${port}`;
+
+            const formData = new URLSearchParams();
+            formData.append("username", username);
+            formData.append("password", password);
+
+            const authResponse = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString()
+            });
+
+            if (!authResponse.ok) {
+                return NextResponse.json(
+                    { error: "Authentication failed. Check your Proxmox credentials." },
+                    { status: 401 }
+                );
+            }
+
+            const authData = await authResponse.json();
+            const ticket = authData?.data?.ticket;
+            const csrfToken = authData?.data?.CSRFPreventionToken;
+
+            if (!ticket) {
+                return NextResponse.json(
+                    { error: "No ticket received from Proxmox." },
+                    { status: 401 }
+                );
+            }
+
+            const source: VBRSource = {
+                id: sourceId,
+                host,
+                port,
+                username,
+                password,
+                protocol: 'https',
+                platform: 'proxmox'
+            };
+            configStore.save(source);
+
+            cookieStore.set('proxmox_source_id', sourceId, {
+                secure: isSecure(request.nextUrl.protocol),
+                httpOnly: true,
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7,
+                sameSite: 'lax'
+            });
+            cookieStore.set('proxmox_ticket', ticket, {
+                secure: isSecure(request.nextUrl.protocol),
+                httpOnly: true,
+                path: '/',
+                maxAge: 60 * 60 * 2,
+                sameSite: 'lax'
+            });
+            if (csrfToken) {
+                cookieStore.set('proxmox_csrf', csrfToken, {
+                    secure: isSecure(request.nextUrl.protocol),
+                    httpOnly: true,
+                    path: '/',
+                    maxAge: 60 * 60 * 2,
+                    sameSite: 'lax'
+                });
+            }
+            cookieStore.set('proxmox_url', baseUrl, {
+                secure: isSecure(request.nextUrl.protocol),
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7
+            });
+
+            console.log(`[Auth] Authenticated Proxmox source: ${sourceId}`);
+            return NextResponse.json({ success: true, sourceId });
+        }
+
+        // === PROXMOX BACKUP SERVER: Ticket-based auth ===
+        if (platform === "pbs") {
+            let host = url.replace(/https?:\/\//, '').replace(/\/$/, '');
+            let port = 8007;
+            if (host.includes(':')) {
+                const parts = host.split(':');
+                host = parts[0];
+                port = parseInt(parts[1], 10);
+            }
+
+            const sourceId = `pbs-${host}-${port}`;
+            const baseUrl = `https://${host}:${port}`;
+
+            const formData = new URLSearchParams();
+            formData.append("username", username);
+            formData.append("password", password);
+
+            const authResponse = await fetch(`${baseUrl}/api2/json/access/ticket`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString()
+            });
+
+            if (!authResponse.ok) {
+                return NextResponse.json(
+                    { error: "Authentication failed. Check your PBS credentials." },
+                    { status: 401 }
+                );
+            }
+
+            const authData = await authResponse.json();
+            const ticket = authData?.data?.ticket;
+            const csrfToken = authData?.data?.CSRFPreventionToken;
+
+            if (!ticket) {
+                return NextResponse.json(
+                    { error: "No ticket received from Proxmox Backup Server." },
+                    { status: 401 }
+                );
+            }
+
+            const source: VBRSource = {
+                id: sourceId,
+                host,
+                port,
+                username,
+                password,
+                protocol: 'https',
+                platform: 'pbs'
+            };
+            configStore.save(source);
+
+            cookieStore.set('pbs_source_id', sourceId, {
+                secure: isSecure(request.nextUrl.protocol),
+                httpOnly: true,
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7,
+                sameSite: 'lax'
+            });
+            cookieStore.set('pbs_ticket', ticket, {
+                secure: isSecure(request.nextUrl.protocol),
+                httpOnly: true,
+                path: '/',
+                maxAge: 60 * 60 * 2,
+                sameSite: 'lax'
+            });
+            if (csrfToken) {
+                cookieStore.set('pbs_csrf', csrfToken, {
+                    secure: isSecure(request.nextUrl.protocol),
+                    httpOnly: true,
+                    path: '/',
+                    maxAge: 60 * 60 * 2,
+                    sameSite: 'lax'
+                });
+            }
+            cookieStore.set('pbs_url', baseUrl, {
+                secure: isSecure(request.nextUrl.protocol),
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7
+            });
+
+            console.log(`[Auth] Authenticated PBS source: ${sourceId}`);
+            return NextResponse.json({ success: true, sourceId });
+        }
+
         // === LEGACY: Client-Side Logic for other platforms (VRO, ONE, etc) ===
         // Normalize URL
         const baseUrl = resolvedUrl ? resolvedUrl.replace(/\/+$/, "") : ""
@@ -366,6 +546,24 @@ export async function GET(
             }
         }
 
+        if (platform === 'proxmox') {
+            const sourceId = cookieStore.get('proxmox_source_id')?.value;
+            const ticket = cookieStore.get('proxmox_ticket')?.value;
+            if (sourceId || ticket) {
+                return NextResponse.json({ authenticated: true, url: cookieStore.get('proxmox_url')?.value })
+            }
+            return NextResponse.json({ authenticated: false })
+        }
+
+        if (platform === 'pbs') {
+            const sourceId = cookieStore.get('pbs_source_id')?.value;
+            const ticket = cookieStore.get('pbs_ticket')?.value;
+            if (sourceId || ticket) {
+                return NextResponse.json({ authenticated: true, url: cookieStore.get('pbs_url')?.value })
+            }
+            return NextResponse.json({ authenticated: false })
+        }
+
         const token = cookieStore.get(config.tokenCookie)?.value
         const url = cookieStore.get(`${config.tokenCookie}_url`)?.value
 
@@ -412,6 +610,14 @@ export async function DELETE(
                 sourceIdCookieName = 'veeam_vro_source_id'
                 urlCookieName = 'veeam_vro_token_url'
                 break
+            case 'proxmox':
+                sourceIdCookieName = 'proxmox_source_id'
+                urlCookieName = 'proxmox_url'
+                break
+            case 'pbs':
+                sourceIdCookieName = 'pbs_source_id'
+                urlCookieName = 'pbs_url'
+                break
             default:
                 sourceIdCookieName = `veeam_${platform}_source_id`
                 urlCookieName = `veeam_${platform}_token_url`
@@ -434,8 +640,17 @@ export async function DELETE(
         // Clear cookies
         cookieStore.delete(sourceIdCookieName)
         cookieStore.delete(urlCookieName)
-        await deleteChunkedCookie(cookieStore, config.tokenCookie)
-        cookieStore.delete(`${config.tokenCookie}_url`)
+
+        if (platform === 'proxmox') {
+            cookieStore.delete('proxmox_ticket')
+            cookieStore.delete('proxmox_csrf')
+        } else if (platform === 'pbs') {
+            cookieStore.delete('pbs_ticket')
+            cookieStore.delete('pbs_csrf')
+        } else {
+            await deleteChunkedCookie(cookieStore, config.tokenCookie)
+            cookieStore.delete(`${config.tokenCookie}_url`)
+        }
 
         return NextResponse.json({ success: true })
     } catch (error) {

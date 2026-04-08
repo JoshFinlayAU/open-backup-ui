@@ -40,7 +40,9 @@ const platformIcons: Record<PlatformType, React.ReactNode> = {
     vro: <RefreshCw className="h-6 w-6" />,
     "veeam-one": <BarChart2 className="h-6 w-6" />,
     one: <BarChart2 className="h-6 w-6" />,
-    kasten: <Database className="h-6 w-6" />
+    kasten: <Database className="h-6 w-6" />,
+    proxmox: <Server className="h-6 w-6" />,
+    pbs: <Database className="h-6 w-6" />
 }
 
 const featureSlides = [
@@ -304,7 +306,9 @@ const defaultPorts: Record<PlatformType, string> = {
     vro: "9081",
     "veeam-one": "1239",
     one: "1239",
-    kasten: "443"
+    kasten: "443",
+    proxmox: "8006",
+    pbs: "8007"
 }
 
 export function LandingPage() {
@@ -819,7 +823,9 @@ export function LandingPage() {
                                                 vro: 'vro.example.com',
                                                 'veeam-one': 'vone.example.com',
                                                 one: 'vone.example.com',
-                                                kasten: 'k10.example.com'
+                                                kasten: 'k10.example.com',
+                                                proxmox: 'proxmox.example.com',
+                                                pbs: 'pbs.example.com'
                                             }[newSourceType] || 'server.example.com'}
                                             value={newSourceHostname}
                                             onChange={(e) => setNewSourceHostname(e.target.value)}
@@ -960,6 +966,13 @@ export function LandingPage() {
                         <DialogTitle>Connect to {dataSources.find(ds => ds.id === authState.sourceId)?.name}</DialogTitle>
                         <DialogDescription>
                             Enter your credentials to authenticate.
+                            {(() => {
+                                const source = dataSources.find(ds => ds.id === authState.sourceId)
+                                if (source?.type === 'proxmox' || source?.type === 'pbs') {
+                                    return " Use the format user@realm (e.g. root@pam)."
+                                }
+                                return ""
+                            })()}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -974,7 +987,11 @@ export function LandingPage() {
                         <div className="space-y-2">
                             <Label>Username</Label>
                             <Input
-                                placeholder="domain\\username or username"
+                                placeholder={(() => {
+                                    const source = dataSources.find(ds => ds.id === authState.sourceId)
+                                    if (source?.type === 'proxmox' || source?.type === 'pbs') return 'root@pam'
+                                    return 'domain\\\\username or username'
+                                })()}
                                 value={authState.username}
                                 onChange={(e) => setAuthState(prev => ({ ...prev, username: e.target.value }))}
                                 disabled={authState.loading}

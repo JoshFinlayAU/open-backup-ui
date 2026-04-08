@@ -76,7 +76,7 @@ export interface VBRSource {
     username: string;
     password?: string; // Only used internally, never returned in list
     protocol: string;
-    platform: 'vbr' | 'vb365' | 'vro' | 'one';
+    platform: 'vbr' | 'vb365' | 'vro' | 'one' | 'proxmox' | 'pbs';
     hasCredentials?: boolean;
 }
 
@@ -189,6 +189,40 @@ export const configStore = {
                     password: process.env.VBM_PASSWORD,
                     platform: 'vb365',
                     hasCredentials: !!process.env.VBM_PASSWORD
+                };
+            } catch { return null; }
+        }
+        if (id === 'env-proxmox') {
+            const urlStr = process.env.PROXMOX_API_URL;
+            if (!urlStr) return null;
+            try {
+                const url = new URL(urlStr);
+                return {
+                    id: 'env-proxmox',
+                    host: url.hostname,
+                    port: parseInt(url.port) || 8006,
+                    protocol: url.protocol.replace(':', ''),
+                    username: process.env.PROXMOX_USERNAME || 'root@pam',
+                    password: process.env.PROXMOX_PASSWORD,
+                    platform: 'proxmox',
+                    hasCredentials: !!process.env.PROXMOX_PASSWORD
+                };
+            } catch { return null; }
+        }
+        if (id === 'env-pbs') {
+            const urlStr = process.env.PBS_API_URL;
+            if (!urlStr) return null;
+            try {
+                const url = new URL(urlStr);
+                return {
+                    id: 'env-pbs',
+                    host: url.hostname,
+                    port: parseInt(url.port) || 8007,
+                    protocol: url.protocol.replace(':', ''),
+                    username: process.env.PBS_USERNAME || 'root@pam',
+                    password: process.env.PBS_PASSWORD,
+                    platform: 'pbs',
+                    hasCredentials: !!process.env.PBS_PASSWORD
                 };
             } catch { return null; }
         }

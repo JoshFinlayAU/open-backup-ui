@@ -9,6 +9,8 @@ const defaultSectionNames = {
     vro: "Veeam Recovery Orchestrator",
     analytics: "Veeam ONE",
     k10: "Kasten K10",
+    proxmox: "Proxmox VE",
+    pbs: "Proxmox Backup Server",
     administration: "Administration",
     documentation: "Documentation"
 }

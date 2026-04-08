@@ -11,11 +11,13 @@ const sectionLabels: Record<SectionKey, string> = {
     vro: "Veeam Recovery Orchestrator",
     analytics: "Veeam ONE",
     k10: "Kasten K10",
+    proxmox: "Proxmox VE",
+    pbs: "Proxmox Backup Server",
     administration: "Administration",
     documentation: "Documentation"
 }
 
-const sectionOrder: SectionKey[] = ["vbr", "vbm", "vro", "analytics", "k10", "administration", "documentation"]
+const sectionOrder: SectionKey[] = ["vbr", "vbm", "vro", "analytics", "k10", "proxmox", "pbs", "administration", "documentation"]
 
 export function SectionNamesEditor() {
     const { sectionNames, setSectionName, resetSectionName, resetSectionNames, getDefaultName } = useSectionNames()

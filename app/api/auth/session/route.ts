@@ -11,7 +11,9 @@ const platformTokenCookies = {
     vro: "veeam_vro_token",
     "veeam-one": "veeam_one_token",
     one: "veeam_one_token",
-    kasten: "kasten_token"
+    kasten: "kasten_token",
+    proxmox: "proxmox_ticket",
+    pbs: "pbs_ticket"
 }
 
 export async function GET() {
@@ -31,13 +33,17 @@ export async function GET() {
                     cookieId = 'veeam_source_id';
                 } else if (platform === 'veeam-one') {
                     cookieId = 'veeam_one_source_id';
+                } else if (platform === 'proxmox') {
+                    cookieId = 'proxmox_source_id';
+                } else if (platform === 'pbs') {
+                    cookieId = 'pbs_source_id';
                 } else {
                     cookieId = `veeam_${platform}_source_id`;
                 }
                 isAuthenticated = !!cookieStore.get(cookieId)?.value
             }
 
-            let url = cookieStore.get(`${cookieName}_url`)?.value
+            let url = cookieStore.get(platform === 'proxmox' ? 'proxmox_url' : platform === 'pbs' ? 'pbs_url' : `${cookieName}_url`)?.value
 
             // 1. Check Global Config Store (Preferred)
             const globalSource = storedSources.find(s => s.platform === (platform === 'veeam-one' ? 'one' : platform));

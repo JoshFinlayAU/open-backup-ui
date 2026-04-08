@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 
 // Platform types
-export type PlatformType = 'vbr' | 'vb365' | 'vro' | 'veeam-one' | 'one' | 'kasten'
+export type PlatformType = 'vbr' | 'vb365' | 'vro' | 'veeam-one' | 'one' | 'kasten' | 'proxmox' | 'pbs'
 
 // Platform display info
 export const platformInfo: Record<PlatformType, { name: string; description: string; color: string }> = {
@@ -12,7 +12,9 @@ export const platformInfo: Record<PlatformType, { name: string; description: str
     vro: { name: "Veeam Recovery Orchestrator", description: "Disaster recovery automation", color: "#9333ea" },
     "veeam-one": { name: "Veeam ONE", description: "Monitoring and analytics", color: "#f97316" },
     one: { name: "Veeam ONE", description: "Monitoring and analytics", color: "#f97316" },
-    kasten: { name: "Kasten K10", description: "Kubernetes data management", color: "#ef4444" }
+    kasten: { name: "Kasten K10", description: "Kubernetes data management", color: "#ef4444" },
+    proxmox: { name: "Proxmox VE", description: "Open-source virtualization platform", color: "#e57000" },
+    pbs: { name: "Proxmox Backup Server", description: "Proxmox enterprise backup solution", color: "#e57000" }
 }
 
 // Data source model

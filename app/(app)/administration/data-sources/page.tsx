@@ -61,7 +61,9 @@ const platformIcons: Record<PlatformType, React.ReactNode> = {
     vro: <RefreshCw className="h-5 w-5" />,
     "veeam-one": <BarChart2 className="h-5 w-5" />,
     one: <BarChart2 className="h-5 w-5" />,
-    kasten: <Database className="h-5 w-5" />
+    kasten: <Database className="h-5 w-5" />,
+    proxmox: <Server className="h-5 w-5" />,
+    pbs: <Database className="h-5 w-5" />
 }
 
 // Default ports for each platform (module scope for stability)
@@ -71,7 +73,9 @@ const DEFAULT_PORTS: Record<PlatformType, string> = {
     vro: "9081",
     "veeam-one": "1239",
     one: "1239",
-    kasten: "443"
+    kasten: "443",
+    proxmox: "8006",
+    pbs: "8007"
 }
 
 function DataSourcesContent() {
@@ -441,7 +445,9 @@ function DataSourcesContent() {
                                             vro: 'vro.example.com',
                                             'veeam-one': 'vone.example.com',
                                             one: 'vone.example.com',
-                                            kasten: 'k10.example.com'
+                                            kasten: 'k10.example.com',
+                                            proxmox: 'proxmox.example.com',
+                                            pbs: 'pbs.example.com'
                                         }[newSourceType] || 'server.example.com'}
                                         value={newSourceHostname}
                                         onChange={(e) => setNewSourceHostname(e.target.value)}

@@ -62,6 +62,44 @@ export async function GET() {
         }
     }
 
+    // Check Proxmox VE Env Var
+    const proxmoxUrl = process.env.PROXMOX_API_URL;
+    if (proxmoxUrl && !sources.some(s => s.platform === 'proxmox')) {
+        try {
+            const url = new URL(proxmoxUrl);
+            sources.push({
+                id: 'env-proxmox',
+                platform: 'proxmox',
+                host: url.hostname,
+                port: parseInt(url.port) || 8006,
+                protocol: url.protocol.replace(':', ''),
+                username: process.env.PROXMOX_USERNAME || 'root@pam',
+                hasCredentials: !!process.env.PROXMOX_PASSWORD
+            } as VBRSource);
+        } catch (e) {
+            console.error('Invalid Proxmox Env URL:', e);
+        }
+    }
+
+    // Check Proxmox Backup Server Env Var
+    const pbsUrl = process.env.PBS_API_URL;
+    if (pbsUrl && !sources.some(s => s.platform === 'pbs')) {
+        try {
+            const url = new URL(pbsUrl);
+            sources.push({
+                id: 'env-pbs',
+                platform: 'pbs',
+                host: url.hostname,
+                port: parseInt(url.port) || 8007,
+                protocol: url.protocol.replace(':', ''),
+                username: process.env.PBS_USERNAME || 'root@pam',
+                hasCredentials: !!process.env.PBS_PASSWORD
+            } as VBRSource);
+        } catch (e) {
+            console.error('Invalid PBS Env URL:', e);
+        }
+    }
+
     // Map to client format
     // Map to client format
     const clientSources = sources.map(s => {
@@ -72,7 +110,9 @@ export async function GET() {
         if (s.id.startsWith('env-')) {
             name = s.platform === 'vbr' ? 'Veeam Backup & Replication (Env)' :
                 s.platform === 'vb365' ? 'Veeam Backup for Microsoft 365 (Env)' :
-                    s.platform === 'one' ? 'Veeam ONE (Env)' : name;
+                s.platform === 'one' ? 'Veeam ONE (Env)' :
+                s.platform === 'proxmox' ? 'Proxmox VE (Env)' :
+                s.platform === 'pbs' ? 'Proxmox Backup Server (Env)' : name;
         }
 
         return {
