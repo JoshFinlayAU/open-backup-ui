@@ -69,12 +69,11 @@ export interface ProxmoxTask {
     pid?: number;
     pstart?: number;
     starttime: number;
-    endtime?: number;
+    endtime?: number;   // Absent while the task is still running
     type: string;
-    id?: string;
+    id?: string;        // VM/CT ID for vzdump tasks
     user: string;
-    status?: string;
-    exitstatus?: string;
+    status?: string;    // "OK", or error message. Absent while still running.
 }
 
 export interface ProxmoxApiResponse<T> {

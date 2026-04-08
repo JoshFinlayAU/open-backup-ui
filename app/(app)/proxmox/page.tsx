@@ -36,7 +36,7 @@ function buildSummary(jobs: ProxmoxBackupJob[], tasks: ProxmoxTask[]): ProxmoxBa
         jobCount: jobs.length,
         enabledJobCount: jobs.filter(j => j.enabled !== 0).length,
         last24hSuccess: recent.filter(t => t.status === 'OK').length,
-        last24hFailed: recent.filter(t => !!t.status && t.status !== 'OK').length,
+        last24hFailed: recent.filter(t => !!t.status && t.status !== 'OK' && !t.status.startsWith('WARNINGS')).length,
         last24hRunning: recent.filter(t => !t.endtime).length,
         totalBackupStorageUsed: 0,
     }
