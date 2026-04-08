@@ -252,6 +252,73 @@ export const proxmoxClient = {
         }
         pveLogger.debug(`getNodeTasks(node=${node}) succeeded`);
         return res.json();
+    },
+
+    async getBackupJobs() {
+        pveLogger.debug('getBackupJobs()');
+        const creds = await getProxmoxCredentials();
+        if (!creds) throw new Error('Not authenticated to Proxmox VE');
+
+        const res = await proxmoxFetch(`${creds.baseUrl}/api2/json/cluster/backup`, {
+            headers: proxmoxHeaders(creds)
+        });
+        if (!res.ok) {
+            pveLogger.error(`getBackupJobs() failed: HTTP ${res.status}`);
+            throw new Error(`Proxmox API error: ${res.status}`);
+        }
+        pveLogger.debug('getBackupJobs() succeeded');
+        return res.json();
+    },
+
+    async getNodeBackupTasks(node: string, limit = 50) {
+        pveLogger.debug(`getNodeBackupTasks(node=${node}, limit=${limit})`);
+        const creds = await getProxmoxCredentials();
+        if (!creds) throw new Error('Not authenticated to Proxmox VE');
+
+        const res = await proxmoxFetch(
+            `${creds.baseUrl}/api2/json/nodes/${node}/tasks?typefilter=vzdump&limit=${limit}`,
+            { headers: proxmoxHeaders(creds) }
+        );
+        if (!res.ok) {
+            pveLogger.error(`getNodeBackupTasks(node=${node}) failed: HTTP ${res.status}`);
+            throw new Error(`Proxmox API error: ${res.status}`);
+        }
+        pveLogger.debug(`getNodeBackupTasks(node=${node}) succeeded`);
+        return res.json();
+    },
+
+    async getBackupStorage(node: string) {
+        pveLogger.debug(`getBackupStorage(node=${node})`);
+        const creds = await getProxmoxCredentials();
+        if (!creds) throw new Error('Not authenticated to Proxmox VE');
+
+        const res = await proxmoxFetch(
+            `${creds.baseUrl}/api2/json/nodes/${node}/storage?content=backup`,
+            { headers: proxmoxHeaders(creds) }
+        );
+        if (!res.ok) {
+            pveLogger.error(`getBackupStorage(node=${node}) failed: HTTP ${res.status}`);
+            throw new Error(`Proxmox API error: ${res.status}`);
+        }
+        pveLogger.debug(`getBackupStorage(node=${node}) succeeded`);
+        return res.json();
+    },
+
+    async getBackupArchives(node: string, storage: string) {
+        pveLogger.debug(`getBackupArchives(node=${node}, storage=${storage})`);
+        const creds = await getProxmoxCredentials();
+        if (!creds) throw new Error('Not authenticated to Proxmox VE');
+
+        const res = await proxmoxFetch(
+            `${creds.baseUrl}/api2/json/nodes/${node}/storage/${storage}/content?content=backup`,
+            { headers: proxmoxHeaders(creds) }
+        );
+        if (!res.ok) {
+            pveLogger.error(`getBackupArchives(node=${node}, storage=${storage}) failed: HTTP ${res.status}`);
+            throw new Error(`Proxmox API error: ${res.status}`);
+        }
+        pveLogger.debug(`getBackupArchives(node=${node}, storage=${storage}) succeeded`);
+        return res.json();
     }
 };
 

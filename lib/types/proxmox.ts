@@ -205,3 +205,45 @@ export interface PBSSummary {
     successfulTasks: number;
     failedTasks: number;
 }
+
+// ===== Proxmox VE Backup Types =====
+
+export interface ProxmoxBackupJob {
+    id: string;             // Backup job ID
+    enabled?: number;       // 1 = enabled, 0 = disabled
+    schedule?: string;      // Cron schedule string (e.g. "0 2 * * *")
+    storage?: string;       // Target storage ID
+    vmid?: string;          // Comma-separated VM/CT IDs, or "all"
+    pool?: string;          // Pool filter
+    node?: string;          // Node filter
+    compress?: string;      // Compression: none | lzo | gzip | zstd
+    mode?: string;          // Backup mode: snapshot | suspend | stop
+    mailnotification?: string;
+    mailto?: string;
+    comment?: string;
+    dow?: string;           // Days of week (legacy cron field)
+    starttime?: string;     // Start time HH:MM (legacy format)
+    type?: string;          // "vzdump"
+    'next-run'?: number;    // Unix timestamp of next scheduled run
+}
+
+export interface ProxmoxBackupArchive {
+    volid: string;          // Volume ID (e.g. "local:backup/vzdump-qemu-100-2024_01_01-00_00_00.vma.zst")
+    content: string;        // "backup"
+    format?: string;        // vma, tar, etc.
+    size?: number;          // bytes
+    ctime?: number;         // Unix timestamp of creation
+    vmid?: number;          // VM/CT ID this archive belongs to
+    notes?: string;
+    protected?: boolean;
+    verification?: { state: string; upid?: string };
+}
+
+export interface ProxmoxBackupSummary {
+    jobCount: number;
+    enabledJobCount: number;
+    last24hSuccess: number;
+    last24hFailed: number;
+    last24hRunning: number;
+    totalBackupStorageUsed: number;  // bytes, summed across backup-capable storage
+}
