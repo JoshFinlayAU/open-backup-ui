@@ -17,6 +17,19 @@ export async function GET() {
         const datastores: PBSDatastore[] = datastoresRes?.data ?? [];
         const tasks: PBSTask[] = tasksRes?.data ?? [];
 
+        // Fetch per-datastore status (disk usage) in parallel; ignore failures
+        const statusResults = await Promise.allSettled(
+            datastores.map((ds: PBSDatastore) => pbsClient.getDatastoreStatus(ds.store))
+        );
+        const enrichedDatastores: PBSDatastore[] = datastores.map((ds, i) => {
+            const r = statusResults[i];
+            if (r.status === 'fulfilled' && r.value?.data) {
+                const s = r.value.data;
+                return { ...ds, total: s.total, used: s.used, avail: s.avail };
+            }
+            return ds;
+        });
+
         const recentTasks = tasks.slice(0, 20);
 
         function isSuccessTask(t: PBSTask) { return t.status === 'OK'; }
@@ -27,9 +40,9 @@ export async function GET() {
         const successfulTasks = tasks.filter(isSuccessTask).length;
         const failedTasks = tasks.filter(isFailedTask).length;
 
-        const totalSpace = datastores.reduce((sum: number, d: PBSDatastore) => sum + (d.total ?? 0), 0);
-        const usedSpace = datastores.reduce((sum: number, d: PBSDatastore) => sum + (d.used ?? 0), 0);
-        const availSpace = datastores.reduce((sum: number, d: PBSDatastore) => sum + (d.avail ?? 0), 0);
+        const totalSpace = enrichedDatastores.reduce((sum: number, d: PBSDatastore) => sum + (d.total ?? 0), 0);
+        const usedSpace = enrichedDatastores.reduce((sum: number, d: PBSDatastore) => sum + (d.used ?? 0), 0);
+        const availSpace = enrichedDatastores.reduce((sum: number, d: PBSDatastore) => sum + (d.avail ?? 0), 0);
 
         const summary: PBSSummary = {
             datastoreCount: datastores.length,

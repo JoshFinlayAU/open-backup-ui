@@ -7,13 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ProxmoxBackupJob, ProxmoxTask, ProxmoxBackupSummary } from "@/lib/types/proxmox"
 
-function formatBytes(bytes: number): string {
-    if (!bytes || bytes === 0) return "0 B"
-    const units = ["B", "KB", "MB", "GB", "TB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(1024))
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
-}
-
 function formatTimestamp(ts: number): string {
     if (!ts) return "—"
     return new Date(ts * 1000).toLocaleString()
@@ -42,9 +35,9 @@ function buildSummary(jobs: ProxmoxBackupJob[], tasks: ProxmoxTask[]): ProxmoxBa
     return {
         jobCount: jobs.length,
         enabledJobCount: jobs.filter(j => j.enabled !== 0).length,
-        last24hSuccess: recent.filter(t => t.exitstatus === 'OK').length,
-        last24hFailed: recent.filter(t => t.exitstatus && t.exitstatus !== 'OK').length,
-        last24hRunning: recent.filter(t => !t.exitstatus).length,
+        last24hSuccess: recent.filter(t => t.status === 'OK').length,
+        last24hFailed: recent.filter(t => !!t.status && t.status !== 'OK').length,
+        last24hRunning: recent.filter(t => !t.endtime).length,
         totalBackupStorageUsed: 0,
     }
 }
@@ -286,20 +279,20 @@ export default function ProxmoxPage() {
                                                 {formatDuration(task.starttime, task.endtime)}
                                             </TableCell>
                                             <TableCell>
-                                                {!task.exitstatus ? (
+                                                {!task.endtime ? (
                                                     <Badge variant="outline" className="text-xs">
                                                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                                         Running
                                                     </Badge>
-                                                ) : task.exitstatus === 'OK' ? (
+                                                ) : task.status === 'OK' ? (
                                                     <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20 text-xs">
                                                         <CheckCircle2 className="h-3 w-3 mr-1" />
                                                         OK
                                                     </Badge>
                                                 ) : (
-                                                    <Badge variant="destructive" className="text-xs">
-                                                        <XCircle className="h-3 w-3 mr-1" />
-                                                        {task.exitstatus}
+                                                    <Badge variant="destructive" className="text-xs max-w-[240px]" title={task.status ?? "Error"}>
+                                                        <XCircle className="h-3 w-3 mr-1 shrink-0" />
+                                                        <span className="truncate">{task.status ?? "Error"}</span>
                                                     </Badge>
                                                 )}
                                             </TableCell>

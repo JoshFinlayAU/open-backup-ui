@@ -1,11 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Database, HardDrive, CheckCircle2, XCircle, Loader2, Clock, AlertTriangle } from "lucide-react"
+import { Database, HardDrive, CheckCircle2, XCircle, Loader2, Clock, AlertTriangle, Archive } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { PBSDatastore, PBSTask, PBSSummary } from "@/lib/types/proxmox"
+import { PBSTask, PBSSummary } from "@/lib/types/proxmox"
+
+// Extended datastore type that includes enriched fields from the API route
+interface PBSDatastoreEnriched {
+    store: string
+    comment?: string | null
+    'mount-status'?: string
+    total?: number
+    used?: number
+    avail?: number
+    groupCount?: number
+}
 
 function formatBytes(bytes: number): string {
     if (!bytes || bytes === 0) return "0 B"
@@ -58,16 +69,16 @@ function TaskStatusBadge({ status }: { status?: string }) {
         )
     }
     return (
-        <Badge variant="destructive" className="text-xs">
-            <XCircle className="h-3 w-3 mr-1" />
-            {status}
+        <Badge variant="destructive" className="text-xs max-w-[200px]" title={status}>
+            <XCircle className="h-3 w-3 mr-1 shrink-0" />
+            <span className="truncate">{status}</span>
         </Badge>
     )
 }
 
 export default function PBSPage() {
     const [summary, setSummary] = useState<PBSSummary | null>(null)
-    const [datastores, setDatastores] = useState<PBSDatastore[]>([])
+    const [datastores, setDatastores] = useState<PBSDatastoreEnriched[]>([])
     const [tasks, setTasks] = useState<PBSTask[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -126,6 +137,9 @@ export default function PBSPage() {
         )
     }
 
+    const warningTasks = tasks.filter(t => t.status?.startsWith('WARNINGS')).length
+    const failedTasks = tasks.filter(t => !!t.status && t.status !== 'OK' && !t.status.startsWith('WARNINGS')).length
+
     return (
         <div className="flex-1 overflow-auto">
             <div className="container mx-auto py-8 px-4 space-y-6">
@@ -165,17 +179,17 @@ export default function PBSPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-green-500">{summary.successfulTasks}</div>
-                                <p className="text-xs text-muted-foreground">recent</p>
+                                <p className="text-xs text-muted-foreground">of last 100</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Failed Tasks</CardTitle>
+                                <CardTitle className="text-sm font-medium">Failed / Warnings</CardTitle>
                                 <XCircle className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-destructive">{summary.failedTasks}</div>
-                                <p className="text-xs text-muted-foreground">recent</p>
+                                <p className="text-xs text-muted-foreground">{warningTasks} with warnings</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -185,13 +199,17 @@ export default function PBSPage() {
                 {datastores.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Datastores</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Database className="h-5 w-5" />
+                                Datastores
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Name</TableHead>
+                                        <TableHead>Backup Groups</TableHead>
                                         <TableHead>Total</TableHead>
                                         <TableHead>Used</TableHead>
                                         <TableHead>Available</TableHead>
@@ -206,21 +224,33 @@ export default function PBSPage() {
                                         return (
                                             <TableRow key={ds.store}>
                                                 <TableCell className="font-medium">{ds.store}</TableCell>
+                                                <TableCell>
+                                                    {ds.groupCount !== undefined ? (
+                                                        <div className="flex items-center gap-1">
+                                                            <Archive className="h-3 w-3 text-muted-foreground" />
+                                                            <span>{ds.groupCount}</span>
+                                                        </div>
+                                                    ) : "—"}
+                                                </TableCell>
                                                 <TableCell>{ds.total ? formatBytes(ds.total) : "—"}</TableCell>
                                                 <TableCell>{ds.used ? formatBytes(ds.used) : "—"}</TableCell>
                                                 <TableCell>{ds.avail ? formatBytes(ds.avail) : "—"}</TableCell>
                                                 <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-20 h-2 rounded-full bg-secondary">
-                                                            <div
-                                                                className={`h-2 rounded-full ${usagePercent > 85 ? 'bg-destructive' : usagePercent > 70 ? 'bg-amber-500' : 'bg-orange-500'}`}
-                                                                style={{ width: `${usagePercent}%` }}
-                                                            />
+                                                    {ds.total ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-20 h-2 rounded-full bg-secondary">
+                                                                <div
+                                                                    className={`h-2 rounded-full ${usagePercent > 85 ? 'bg-destructive' : usagePercent > 70 ? 'bg-amber-500' : 'bg-orange-500'}`}
+                                                                    style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {usagePercent.toFixed(1)}%
+                                                            </span>
                                                         </div>
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {usagePercent.toFixed(1)}%
-                                                        </span>
-                                                    </div>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">—</span>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         )
@@ -235,14 +265,23 @@ export default function PBSPage() {
                 {tasks.length > 0 && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Recent Tasks</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Clock className="h-5 w-5" />
+                                Recent Tasks
+                                {failedTasks > 0 && (
+                                    <Badge variant="destructive" className="ml-2 text-xs">{failedTasks} failed</Badge>
+                                )}
+                                {warningTasks > 0 && (
+                                    <Badge className="ml-1 bg-amber-500/10 text-amber-500 border-amber-500/20 text-xs">{warningTasks} warnings</Badge>
+                                )}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Type</TableHead>
-                                        <TableHead>ID</TableHead>
+                                        <TableHead>Target</TableHead>
                                         <TableHead>User</TableHead>
                                         <TableHead>Start Time</TableHead>
                                         <TableHead>Duration</TableHead>
@@ -250,12 +289,12 @@ export default function PBSPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {tasks.slice(0, 30).map((task) => (
+                                    {tasks.slice(0, 50).map((task) => (
                                         <TableRow key={task.upid}>
                                             <TableCell className="font-medium">
                                                 {formatWorkerType(task.worker_type)}
                                             </TableCell>
-                                            <TableCell className="font-mono text-xs">
+                                            <TableCell className="font-mono text-xs text-muted-foreground">
                                                 {task.worker_id ?? "—"}
                                             </TableCell>
                                             <TableCell>{task.user}</TableCell>
