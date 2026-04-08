@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { isTelemetryDisabled, enableTelemetry, disableTelemetry } from "@/lib/telemetry"
@@ -353,8 +353,9 @@ export function LandingPage() {
     // Auto-select first available platform when switching to add mode
     useEffect(() => {
         if (viewMode === "add") {
-            const available = (Object.keys(platformInfo) as PlatformType[])
-                .find(type => !dataSources.some(ds => ds.type === type))
+            const orderedTypes: PlatformType[] = ['vbr', 'vb365', 'vro', 'veeam-one', 'kasten', 'proxmox', 'pbs']
+            const available = orderedTypes
+                .find(type => !dataSources.some(ds => ds.type === type || (type === 'veeam-one' && ds.type === 'one')))
 
             if (available) {
                 setNewSourceType(available)
@@ -785,24 +786,47 @@ export function LandingPage() {
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {(Object.keys(platformInfo) as PlatformType[])
-                                                .filter(type => type !== 'one') // Exclude alias
-                                                .map((type) => {
-                                                    const isConfigured = dataSources.some(ds => ds.type === type || (type === 'veeam-one' && ds.type === 'one'))
-                                                    return (
-                                                        <SelectItem key={type} value={type} disabled={isConfigured}>
-                                                            <div className="flex items-center gap-2">
-                                                                <span style={{ color: platformInfo[type].color }}>
-                                                                    {platformIcons[type]}
-                                                                </span>
-                                                                <span>
-                                                                    {platformInfo[type].name}
-                                                                    {isConfigured && " (Configured)"}
-                                                                </span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    )
-                                                })}
+                                            <SelectGroup>
+                                                <SelectLabel className="text-xs text-muted-foreground">Veeam</SelectLabel>
+                                                {((['vbr', 'vb365', 'vro', 'veeam-one', 'kasten'] as PlatformType[])
+                                                    .map((type) => {
+                                                        const isConfigured = dataSources.some(ds => ds.type === type || (type === 'veeam-one' && ds.type === 'one'))
+                                                        return (
+                                                            <SelectItem key={type} value={type} disabled={isConfigured}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span style={{ color: platformInfo[type].color }}>
+                                                                        {platformIcons[type]}
+                                                                    </span>
+                                                                    <span>
+                                                                        {platformInfo[type].name}
+                                                                        {isConfigured && " (Configured)"}
+                                                                    </span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        )
+                                                    }))}
+                                            </SelectGroup>
+                                            <SelectSeparator />
+                                            <SelectGroup>
+                                                <SelectLabel className="text-xs text-muted-foreground">Proxmox</SelectLabel>
+                                                {((['proxmox', 'pbs'] as PlatformType[])
+                                                    .map((type) => {
+                                                        const isConfigured = dataSources.some(ds => ds.type === type)
+                                                        return (
+                                                            <SelectItem key={type} value={type} disabled={isConfigured}>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span style={{ color: platformInfo[type].color }}>
+                                                                        {platformIcons[type]}
+                                                                    </span>
+                                                                    <span>
+                                                                        {platformInfo[type].name}
+                                                                        {isConfigured && " (Configured)"}
+                                                                    </span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        )
+                                                    }))}
+                                            </SelectGroup>
                                         </SelectContent>
                                     </Select>
                                 </div>

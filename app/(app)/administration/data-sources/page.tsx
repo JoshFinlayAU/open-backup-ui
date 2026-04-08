@@ -20,7 +20,10 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
@@ -414,9 +417,9 @@ function DataSourcesContent() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {(Object.keys(platformInfo) as PlatformType[])
-                                        .filter(type => type !== 'one') // Exclude alias
-                                        .map((type) => (
+                                    <SelectGroup>
+                                        <SelectLabel className="text-xs text-muted-foreground">Veeam</SelectLabel>
+                                        {(['vbr', 'vb365', 'vro', 'veeam-one', 'kasten'] as PlatformType[]).map((type) => (
                                             <SelectItem key={type} value={type}>
                                                 <div className="flex items-center gap-2">
                                                     <span style={{ color: platformInfo[type].color }}>
@@ -426,6 +429,21 @@ function DataSourcesContent() {
                                                 </div>
                                             </SelectItem>
                                         ))}
+                                    </SelectGroup>
+                                    <SelectSeparator />
+                                    <SelectGroup>
+                                        <SelectLabel className="text-xs text-muted-foreground">Proxmox</SelectLabel>
+                                        {(['proxmox', 'pbs'] as PlatformType[]).map((type) => (
+                                            <SelectItem key={type} value={type}>
+                                                <div className="flex items-center gap-2">
+                                                    <span style={{ color: platformInfo[type].color }}>
+                                                        {platformIcons[type]}
+                                                    </span>
+                                                    <span>{platformInfo[type].name}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
                                 </SelectContent>
                             </Select>
                         </div>
