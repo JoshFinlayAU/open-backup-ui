@@ -990,7 +990,7 @@ export function LandingPage() {
                                 placeholder={(() => {
                                     const source = dataSources.find(ds => ds.id === authState.sourceId)
                                     if (source?.type === 'proxmox' || source?.type === 'pbs') return 'root@pam'
-                                    return 'domain\\\\username or username'
+                                    return 'domain\\username or username'
                                 })()}
                                 value={authState.username}
                                 onChange={(e) => setAuthState(prev => ({ ...prev, username: e.target.value }))}

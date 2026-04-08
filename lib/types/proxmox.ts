@@ -174,7 +174,7 @@ export interface PBSNodeStatus {
         sockets: number;
     };
     kversion?: string;
-    pveversion?: string;
+    version?: string;
 }
 
 export interface PBSApiResponse<T> {
