@@ -35,15 +35,13 @@ async function getProxmoxCredentials(): Promise<ProxmoxCredentials | null> {
     if (!source || !source.password) return null;
 
     const baseUrl = `${source.protocol}://${source.host}:${source.port}`;
-    const formData = new URLSearchParams();
-    formData.append('username', source.username);
-    formData.append('password', source.password);
+    const body = `username=${source.username}&password=${encodeURIComponent(source.password)}`;
 
     try {
         const res = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
+            body
         });
         if (!res.ok) return null;
         const data = await res.json();
@@ -77,15 +75,13 @@ async function getPBSCredentials(): Promise<ProxmoxCredentials | null> {
     if (!source || !source.password) return null;
 
     const baseUrl = `${source.protocol}://${source.host}:${source.port}`;
-    const formData = new URLSearchParams();
-    formData.append('username', source.username);
-    formData.append('password', source.password);
+    const body = `username=${source.username}&password=${encodeURIComponent(source.password)}`;
 
     try {
         const res = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
+            body
         });
         if (!res.ok) return null;
         const data = await res.json();

@@ -59,7 +59,14 @@ export function proxmoxFetch(url: string, init?: RequestInit): Promise<Response>
         req.on('error', reject);
 
         if (init?.body != null) {
-            req.write(init.body as string);
+            const bodyStr = init.body as string;
+            const bodyBytes = Buffer.byteLength(bodyStr);
+            // Set Content-Length so Node.js doesn't use chunked transfer encoding,
+            // which Proxmox's HTTP server does not accept for POST bodies.
+            if (!normalizedHeaders['Content-Length'] && !normalizedHeaders['content-length']) {
+                req.setHeader('Content-Length', bodyBytes);
+            }
+            req.write(bodyStr);
         }
         req.end();
     });

@@ -267,14 +267,14 @@ export async function POST(
             const sourceId = `proxmox-${host}-${port}`;
             const baseUrl = `https://${host}:${port}`;
 
-            const formData = new URLSearchParams();
-            formData.append("username", username);
-            formData.append("password", password);
+            // Build body exactly as curl does: username sent raw (preserving @),
+            // password URL-encoded to handle special characters.
+            const proxmoxBody = `username=${username}&password=${encodeURIComponent(password)}`;
 
             const authResponse = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: formData.toString()
+                body: proxmoxBody
             });
 
             if (!authResponse.ok) {
@@ -352,14 +352,14 @@ export async function POST(
             const sourceId = `pbs-${host}-${port}`;
             const baseUrl = `https://${host}:${port}`;
 
-            const formData = new URLSearchParams();
-            formData.append("username", username);
-            formData.append("password", password);
+            // Build body exactly as curl does: username sent raw (preserving @),
+            // password URL-encoded to handle special characters.
+            const pbsBody = `username=${username}&password=${encodeURIComponent(password)}`;
 
             const authResponse = await proxmoxFetch(`${baseUrl}/api2/json/access/ticket`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: formData.toString()
+                body: pbsBody
             });
 
             if (!authResponse.ok) {
