@@ -12,12 +12,16 @@ export default async function DashboardPage() {
     const vb365Token = getChunkedCookie(cookieStore, 'veeam_vb365_token')
     const vroToken = getChunkedCookie(cookieStore, 'veeam_vro_token')
     const voneToken = getChunkedCookie(cookieStore, 'veeam_one_token')
+    const proxmoxToken = cookieStore.get('proxmox_source_id')?.value || cookieStore.get('proxmox_ticket')?.value
+    const pbsToken = cookieStore.get('pbs_source_id')?.value || cookieStore.get('pbs_ticket')?.value
 
     // Also check legacy .env configuration
     const hasVBR = !!vbrToken || !!process.env.VEEAM_API_URL
     const hasVB365 = vb365Token || !!process.env.VBM_API_URL
     const hasVRO = vroToken || !!process.env.VRO_API_URL
     const hasVONE = voneToken || !!process.env.VEEAM_ONE_API_URL
+    const hasProxmox = !!proxmoxToken || !!process.env.PROXMOX_API_URL
+    const hasPBS = !!pbsToken || !!process.env.PBS_API_URL
 
     // Redirect to first available platform dashboard
     if (hasVBR) {
@@ -28,6 +32,10 @@ export default async function DashboardPage() {
         redirect('/analytics/reports')
     } else if (hasVRO) {
         redirect('/vro')
+    } else if (hasProxmox) {
+        redirect('/proxmox')
+    } else if (hasPBS) {
+        redirect('/pbs')
     } else {
         // No platforms configured, go to connect page
         redirect('/connect')
