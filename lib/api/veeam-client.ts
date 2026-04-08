@@ -54,6 +54,9 @@ import {
 } from '@/lib/types/veeam';
 import { VBMJob, VBMJobsResponse, VBMJobSession, VBMJobSessionsResponse, VBMLicense, VBMHealth, VBMServiceInstance, VBMOrganization, VBMOrganizationsResponse, VBMUsedRepositoriesResponse, VBMUsedRepository, VBMProtectedUser, VBMProtectedUsersResponse, VBMProtectedGroup, VBMProtectedGroupsResponse, VBMProtectedSite, VBMProtectedSitesResponse, VBMProtectedTeam, VBMProtectedTeamsResponse, VBMRestorePoint, VBMRestorePointsResponse, VBMBackupRepository, VBMBackupRepositoriesResponse, VB365LicensedUser, VB365LicensedUsersResponse, VB365Proxy, VB365ProxiesResponse, VB365Repository, VB365RepositoriesResponse } from '@/lib/types/vbm';
 import { AuthDebouncer, RateLimiter } from '@/lib/utils/rate-limiter';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('VeeamClient');
 
 interface TokenResponse {
   access_token: string;
@@ -98,7 +101,7 @@ class VeeamApiClient {
         try {
           return await this.refreshAccessToken();
         } catch (error) {
-          console.warn('Token refresh failed, re-authenticating:', error);
+          logger.warn('Token refresh failed, re-authenticating:', error);
           // Fall through to full authentication
         }
       }
@@ -133,7 +136,7 @@ class VeeamApiClient {
 
       return this.token;
     } catch (error) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication error:', error);
       throw error;
     }
   }
@@ -265,7 +268,7 @@ class VeeamApiClient {
       const response = await this.request<JobsResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching backup jobs:', error);
+      logger.error('Error fetching backup jobs:', error);
       throw error;
     }
   }
@@ -292,7 +295,7 @@ class VeeamApiClient {
 
       return basicJob;
     } catch (error) {
-      console.error(`Error fetching backup job ${id}:`, error);
+      logger.error(`Error fetching backup job ${id}:`, error);
       throw error;
     }
   }
@@ -304,7 +307,7 @@ class VeeamApiClient {
         body: JSON.stringify({ action: 'start', requestPayload: payload }),
       });
     } catch (error) {
-      console.error(`Error starting job ${id}:`, error);
+      logger.error(`Error starting job ${id}:`, error);
       throw error;
     }
   }
@@ -316,7 +319,7 @@ class VeeamApiClient {
         body: JSON.stringify({ action: 'stop' }),
       });
     } catch (error) {
-      console.error(`Error stopping job ${id}:`, error);
+      logger.error(`Error stopping job ${id}:`, error);
       throw error;
     }
   }
@@ -328,7 +331,7 @@ class VeeamApiClient {
         body: JSON.stringify({ action: 'retry' }),
       });
     } catch (error) {
-      console.error(`Error retrying job ${id}:`, error);
+      logger.error(`Error retrying job ${id}:`, error);
       throw error;
     }
   }
@@ -340,7 +343,7 @@ class VeeamApiClient {
         body: JSON.stringify({ action: 'disable' }),
       });
     } catch (error) {
-      console.error(`Error disabling job ${id}:`, error);
+      logger.error(`Error disabling job ${id}:`, error);
       throw error;
     }
   }
@@ -352,7 +355,7 @@ class VeeamApiClient {
         body: JSON.stringify({ action: 'enable' }),
       });
     } catch (error) {
-      console.error(`Error enabling job ${id}:`, error);
+      logger.error(`Error enabling job ${id}:`, error);
       throw error;
     }
   }
@@ -394,7 +397,7 @@ class VeeamApiClient {
       const response = await this.request<SessionsResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      logger.error('Error fetching sessions:', error);
       throw error;
     }
   }
@@ -403,7 +406,7 @@ class VeeamApiClient {
     try {
       return await this.request<VeeamSession>(`/sessions/${id}`);
     } catch (error) {
-      console.error(`Error fetching session ${id}:`, error);
+      logger.error(`Error fetching session ${id}:`, error);
       throw error;
     }
   }
@@ -415,7 +418,7 @@ class VeeamApiClient {
         body: JSON.stringify(payload),
       });
     } catch (error) {
-      console.error('Error creating backup job:', error);
+      logger.error('Error creating backup job:', error);
       throw error;
     }
   }
@@ -426,7 +429,7 @@ class VeeamApiClient {
       // Returns true if the name does NOT exist already (case-insensitive)
       return !jobs.some(job => job.name.toLowerCase() === name.toLowerCase());
     } catch (error) {
-      console.error('Error validating job name locally:', error);
+      logger.error('Error validating job name locally:', error);
       // In case of error, default to false or handle it upstream
       return false;
     }
@@ -450,7 +453,7 @@ class VeeamApiClient {
         return true;
       });
     } catch (error) {
-      console.error('Error fetching source jobs for backup copy locally:', error);
+      logger.error('Error fetching source jobs for backup copy locally:', error);
       throw error;
     }
   }
@@ -462,7 +465,7 @@ class VeeamApiClient {
         body: JSON.stringify(item),
       });
     } catch (error) {
-      console.error('Error initiating quick backup:', error);
+      logger.error('Error initiating quick backup:', error);
       throw error;
     }
   }
@@ -499,7 +502,7 @@ class VeeamApiClient {
       const response = await this.request<ManagedServersResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching managed servers:', error);
+      logger.error('Error fetching managed servers:', error);
       throw error;
     }
   }
@@ -509,7 +512,7 @@ class VeeamApiClient {
       const response = await this.request<RepositoriesResult>('/backupInfrastructure/repositories');
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching repositories:', error);
+      logger.error('Error fetching repositories:', error);
       // Return empty array instead of throwing to prevent dashboard crash
       return [];
     }
@@ -531,7 +534,7 @@ class VeeamApiClient {
       const response = await this.request<ProxiesResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching backup proxies:', error);
+      logger.error('Error fetching backup proxies:', error);
       throw error;
     }
   }
@@ -548,7 +551,7 @@ class VeeamApiClient {
       const response = await this.request<ProxyStatesResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching backup proxy states:', error);
+      logger.error('Error fetching backup proxy states:', error);
       throw error;
     }
   }
@@ -559,7 +562,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error enabling proxy ${id}:`, error);
+      logger.error(`Error enabling proxy ${id}:`, error);
       throw error;
     }
   }
@@ -570,7 +573,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error disabling proxy ${id}:`, error);
+      logger.error(`Error disabling proxy ${id}:`, error);
       throw error;
     }
   }
@@ -581,7 +584,7 @@ class VeeamApiClient {
         method: 'DELETE'
       });
     } catch (error) {
-      console.error(`Error deleting proxy ${id}:`, error);
+      logger.error(`Error deleting proxy ${id}:`, error);
       throw error;
     }
   }
@@ -621,7 +624,7 @@ class VeeamApiClient {
         };
       });
     } catch (error) {
-      console.error('Error fetching enriched proxies:', error);
+      logger.error('Error fetching enriched proxies:', error);
       return [];
     }
   }
@@ -635,9 +638,9 @@ class VeeamApiClient {
       const err = error as { status?: number; message?: string };
       // Check if it's a permission error
       if (err?.status === 403 || err?.message?.includes('403') || err?.message?.includes('Permission denied')) {
-        console.warn('⚠️ License info unavailable: User lacks GetInstalledLicense permission (Veeam Backup Administrator role required)');
+        logger.warn('⚠️ License info unavailable: User lacks GetInstalledLicense permission (Veeam Backup Administrator role required)');
       } else {
-        console.error('Error fetching license info:', error);
+        logger.error('Error fetching license info:', error);
       }
       return null;
     }
@@ -649,7 +652,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error revoking license instance ${instanceId}:`, error);
+      logger.error(`Error revoking license instance ${instanceId}:`, error);
       throw error;
     }
   }
@@ -660,7 +663,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error revoking license capacity ${instanceId}:`, error);
+      logger.error(`Error revoking license capacity ${instanceId}:`, error);
       throw error;
     }
   }
@@ -688,7 +691,7 @@ class VeeamApiClient {
       }
       return response;
     } catch (error) {
-      console.error('Error creating license report:', error);
+      logger.error('Error creating license report:', error);
       throw error;
     }
   }
@@ -706,7 +709,7 @@ class VeeamApiClient {
       const response = await this.request<MalwareEventsResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching malware events:', error);
+      logger.error('Error fetching malware events:', error);
       return [];
     }
   }
@@ -719,9 +722,9 @@ class VeeamApiClient {
       const err = error as { status?: number; message?: string };
       // Check if it's a permission error
       if (err?.status === 403 || err?.message?.includes('403') || err?.message?.includes('Permission denied')) {
-        console.warn('⚠️ Security best practices unavailable: User lacks GetBestPracticesComplianceResult permission (Veeam Backup/Security Administrator role required)');
+        logger.warn('⚠️ Security best practices unavailable: User lacks GetBestPracticesComplianceResult permission (Veeam Backup/Security Administrator role required)');
       } else {
-        console.error('Error fetching security best practices:', error);
+        logger.error('Error fetching security best practices:', error);
       }
       return [];
     }
@@ -733,7 +736,7 @@ class VeeamApiClient {
       const response = await this.request<TaskSessionsResult>(`/sessions/${sessionId}/tasks`);
       return response.data || [];
     } catch (error) {
-      console.error(`Error fetching tasks for session ${sessionId}:`, error);
+      logger.error(`Error fetching tasks for session ${sessionId}:`, error);
       throw error;
     }
   }
@@ -745,7 +748,7 @@ class VeeamApiClient {
       });
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching protected data:', error);
+      logger.error('Error fetching protected data:', error);
       throw error;
     }
   }
@@ -757,7 +760,7 @@ class VeeamApiClient {
       });
       return response.data || [];
     } catch (error) {
-      console.error(`Error fetching backup files for ${backupId}:`, error);
+      logger.error(`Error fetching backup files for ${backupId}:`, error);
       throw error;
     }
   }
@@ -777,7 +780,7 @@ class VeeamApiClient {
       });
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching VBR restore points:', error);
+      logger.error('Error fetching VBR restore points:', error);
       throw error;
     }
   }
@@ -805,13 +808,13 @@ class VeeamApiClient {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        console.warn('Workload not found in inventory:', errData);
+        logger.warn('Workload not found in inventory:', errData);
         return { workload: null, vCenter: null };
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Error fetching workload details:', error);
+      logger.error('Error fetching workload details:', error);
       return { workload: null, vCenter: null };
     }
   }
@@ -822,7 +825,7 @@ class VeeamApiClient {
         apiPrefix: '/api/vbr'
       });
     } catch (error) {
-      console.error('Error fetching server info:', error);
+      logger.error('Error fetching server info:', error);
       return null;
     }
   }
@@ -833,7 +836,7 @@ class VeeamApiClient {
         apiPrefix: '/api/vbr'
       });
     } catch (error) {
-      console.error('Error fetching storage capacity:', error);
+      logger.error('Error fetching storage capacity:', error);
       return null;
     }
   }
@@ -865,7 +868,7 @@ class VeeamApiClient {
       const response = await this.request<ProtectionGroupsResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching protection groups:', error);
+      logger.error('Error fetching protection groups:', error);
       throw error;
     }
   }
@@ -874,7 +877,7 @@ class VeeamApiClient {
     try {
       return await this.request<VeeamProtectionGroup>(`/agents/protectionGroups/${id}`);
     } catch (error) {
-      console.error(`Error fetching protection group ${id}:`, error);
+      logger.error(`Error fetching protection group ${id}:`, error);
       throw error;
     }
   }
@@ -885,7 +888,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error rescanning protection group ${id}:`, error);
+      logger.error(`Error rescanning protection group ${id}:`, error);
       throw error;
     }
   }
@@ -896,7 +899,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error enabling protection group ${id}:`, error);
+      logger.error(`Error enabling protection group ${id}:`, error);
       throw error;
     }
   }
@@ -907,7 +910,7 @@ class VeeamApiClient {
         method: 'POST'
       });
     } catch (error) {
-      console.error(`Error disabling protection group ${id}:`, error);
+      logger.error(`Error disabling protection group ${id}:`, error);
       throw error;
     }
   }
@@ -937,7 +940,7 @@ class VeeamApiClient {
       const response = await this.request<DiscoveredEntitiesResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error(`Error fetching discovered entities for group ${groupId}:`, error);
+      logger.error(`Error fetching discovered entities for group ${groupId}:`, error);
       throw error;
     }
   }
@@ -950,7 +953,7 @@ class VeeamApiClient {
         body: JSON.stringify({ entityIds })
       });
     } catch (error) {
-      console.error(`Error performing ${action} on entities in group ${groupId}:`, error);
+      logger.error(`Error performing ${action} on entities in group ${groupId}:`, error);
       throw error;
     }
   }
@@ -1006,7 +1009,7 @@ class VeeamApiClient {
             enriched.credentialsUserName = cred.username;
             enriched.credentialsCreationTime = cred.creationTime;
           } catch {
-            console.warn(`Failed to fetch credentials for server ${server.id}`);
+            logger.warn(`Failed to fetch credentials for server ${server.id}`);
           }
         }
 
@@ -1017,7 +1020,7 @@ class VeeamApiClient {
             enriched.repositoryName = repo.name;
             enriched.repositoryDescription = repo.description;
           } catch {
-            console.warn(`Failed to fetch repository for server ${server.id}`);
+            logger.warn(`Failed to fetch repository for server ${server.id}`);
           }
         }
 
@@ -1026,7 +1029,7 @@ class VeeamApiClient {
 
       return enrichedServers;
     } catch (error) {
-      console.error('Error fetching unstructured servers:', error);
+      logger.error('Error fetching unstructured servers:', error);
       throw error;
     }
   }
@@ -1037,7 +1040,7 @@ class VeeamApiClient {
         method: 'DELETE'
       });
     } catch (error) {
-      console.error(`Error deleting unstructured server ${id}:`, error);
+      logger.error(`Error deleting unstructured server ${id}:`, error);
       throw error;
     }
   }
@@ -1085,7 +1088,7 @@ class VeeamApiClient {
           });
           return drillResponse.data || [];
         } catch (e) {
-          console.warn(`Failed to drill down into ${target.name}`, e);
+          logger.warn(`Failed to drill down into ${target.name}`, e);
           return [];
         }
       });
@@ -1099,7 +1102,7 @@ class VeeamApiClient {
       return allItems;
 
     } catch (error) {
-      console.error('Error fetching inventory:', error);
+      logger.error('Error fetching inventory:', error);
       throw error;
     }
   }
@@ -1228,7 +1231,7 @@ class VeeamApiClient {
       this.inventoryLastUpdated = now;
 
     } catch (error) {
-      console.error('Error building search inventory:', error);
+      logger.error('Error building search inventory:', error);
       // Keep old inventory if update fails
     }
   }
@@ -1271,7 +1274,7 @@ class VeeamApiClient {
         try {
           return await this.refreshVROAccessToken();
         } catch (error) {
-          console.warn('VRO token refresh failed, re-authenticating:', error);
+          logger.warn('VRO token refresh failed, re-authenticating:', error);
           // Fall through to full authentication
         }
       }
@@ -1300,7 +1303,7 @@ class VeeamApiClient {
 
       return this.vroToken;
     } catch (error) {
-      console.error('VRO authentication error:', error);
+      logger.error('VRO authentication error:', error);
       throw error;
     }
   }
@@ -1385,7 +1388,7 @@ class VeeamApiClient {
       const response = await this.requestVRO<PlansResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching recovery plans:', error);
+      logger.error('Error fetching recovery plans:', error);
       throw error;
     }
   }
@@ -1394,7 +1397,7 @@ class VeeamApiClient {
     try {
       return await this.requestVRO<VRORecoveryPlan>(`/plans/${id}`);
     } catch (error) {
-      console.error(`Error fetching recovery plan ${id}:`, error);
+      logger.error(`Error fetching recovery plan ${id}:`, error);
       throw error;
     }
   }
@@ -1426,7 +1429,7 @@ class VeeamApiClient {
           try {
             return await this.refreshVBMAccessToken();
           } catch (error) {
-            console.warn('VBM token refresh failed, re-authenticating:', error);
+            logger.warn('VBM token refresh failed, re-authenticating:', error);
             // Fall through to full authentication
           }
         }
@@ -1455,7 +1458,7 @@ class VeeamApiClient {
 
         return this.vbmToken;
       } catch (error) {
-        console.error('VBM authentication error:', error);
+        logger.error('VBM authentication error:', error);
         throw error;
       }
     });
@@ -1552,7 +1555,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMJobsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM jobs:', error);
+      logger.error('Error fetching VBM jobs:', error);
       throw error;
     }
   }
@@ -1563,7 +1566,7 @@ class VeeamApiClient {
         method: 'POST',
       });
     } catch (error) {
-      console.error(`Error starting VBM job ${jobId}:`, error);
+      logger.error(`Error starting VBM job ${jobId}:`, error);
       throw error;
     }
   }
@@ -1574,7 +1577,7 @@ class VeeamApiClient {
         method: 'POST',
       });
     } catch (error) {
-      console.error(`Error stopping VBM job ${jobId}:`, error);
+      logger.error(`Error stopping VBM job ${jobId}:`, error);
       throw error;
     }
   }
@@ -1585,7 +1588,7 @@ class VeeamApiClient {
         method: 'POST',
       });
     } catch (error) {
-      console.error(`Error enabling VBM job ${jobId}:`, error);
+      logger.error(`Error enabling VBM job ${jobId}:`, error);
       throw error;
     }
   }
@@ -1596,7 +1599,7 @@ class VeeamApiClient {
         method: 'POST',
       });
     } catch (error) {
-      console.error(`Error disabling VBM job ${jobId}:`, error);
+      logger.error(`Error disabling VBM job ${jobId}:`, error);
       throw error;
     }
   }
@@ -1620,7 +1623,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMJobSessionsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error(`Error fetching VBM sessions for job ${jobId}:`, error);
+      logger.error(`Error fetching VBM sessions for job ${jobId}:`, error);
       throw error;
     }
   }
@@ -1641,7 +1644,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VB365LicensedUsersResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VB365 licensed users:', error);
+      logger.error('Error fetching VB365 licensed users:', error);
       return [];
     }
   }
@@ -1662,7 +1665,7 @@ class VeeamApiClient {
         throw new Error(errorData.error || `Failed to revoke license: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error revoking VB365 license:', error);
+      logger.error('Error revoking VB365 license:', error);
       throw error;
     }
   }
@@ -1690,7 +1693,7 @@ class VeeamApiClient {
 
       return await response.blob();
     } catch (error) {
-      console.error('Error generating VB365 license report:', error);
+      logger.error('Error generating VB365 license report:', error);
       throw error;
     }
   }
@@ -1707,7 +1710,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VB365ProxiesResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VB365 proxies:', error);
+      logger.error('Error fetching VB365 proxies:', error);
       return [];
     }
   }
@@ -1728,7 +1731,7 @@ class VeeamApiClient {
         throw new Error(`Failed to rescan proxy: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error rescanning VB365 proxy:', error);
+      logger.error('Error rescanning VB365 proxy:', error);
       throw error;
     }
   }
@@ -1749,7 +1752,7 @@ class VeeamApiClient {
         throw new Error(`Failed to set maintenance mode: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error setting VB365 proxy maintenance mode:', error);
+      logger.error('Error setting VB365 proxy maintenance mode:', error);
       throw error;
     }
   }
@@ -1766,7 +1769,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VB365RepositoriesResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VB365 repositories:', error);
+      logger.error('Error fetching VB365 repositories:', error);
       return [];
     }
   }
@@ -1786,7 +1789,7 @@ class VeeamApiClient {
       const response = await this.request<BackupsResult>(endpoint);
       return response.data || [];
     } catch (error) {
-      console.error('Error fetching backups:', error);
+      logger.error('Error fetching backups:', error);
       return [];
     }
   }
@@ -1814,7 +1817,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMOrganizationsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM organizations:', error);
+      logger.error('Error fetching VBM organizations:', error);
       throw error;
     }
   }
@@ -1824,7 +1827,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMUsedRepositoriesResponse>(`/Organizations/${orgId}/usedRepositories`);
       return response.results || [];
     } catch (error) {
-      console.error(`Error fetching used repositories for org ${orgId}:`, error);
+      logger.error(`Error fetching used repositories for org ${orgId}:`, error);
       // Return empty array instead of throwing to prevent dashboard calculation failure from one bad org
       return [];
     }
@@ -1840,7 +1843,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMProtectedUsersResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM protected users:', error);
+      logger.error('Error fetching VBM protected users:', error);
       return [];
     }
   }
@@ -1855,7 +1858,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMProtectedGroupsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM protected groups:', error);
+      logger.error('Error fetching VBM protected groups:', error);
       return [];
     }
   }
@@ -1870,7 +1873,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMProtectedSitesResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM protected sites:', error);
+      logger.error('Error fetching VBM protected sites:', error);
       return [];
     }
   }
@@ -1885,7 +1888,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMProtectedTeamsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM protected teams:', error);
+      logger.error('Error fetching VBM protected teams:', error);
       return [];
     }
   }
@@ -1912,7 +1915,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMRestorePointsResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM restore points:', error);
+      logger.error('Error fetching VBM restore points:', error);
       return [];
     }
   }
@@ -1927,7 +1930,7 @@ class VeeamApiClient {
       const response = await this.requestVBM<VBMBackupRepositoriesResponse>(endpoint);
       return response.results || [];
     } catch (error) {
-      console.error('Error fetching VBM backup repositories:', error);
+      logger.error('Error fetching VBM backup repositories:', error);
       return [];
     }
   }
@@ -1960,14 +1963,14 @@ class VeeamApiClient {
 
         // Safety break for extremely large envs to prevent infinite loops if API misbehaves
         if (allObjects.length > 20000) {
-          console.warn('Backup objects limit reached (20k), stopping fetch.');
+          logger.warn('Backup objects limit reached (20k), stopping fetch.');
           hasMore = false;
         }
       }
 
       return allObjects;
     } catch (error) {
-      console.error('Error fetching all backup objects:', error);
+      logger.error('Error fetching all backup objects:', error);
       return [];
     }
   }
@@ -1981,7 +1984,7 @@ class VeeamApiClient {
       const response = await this.request<{ data: VeeamRepository[] }>('/backupInfrastructure/repositories');
       return response.data;
     } catch (error) {
-      console.error('Failed to get backup repositories:', error);
+      logger.error('Failed to get backup repositories:', error);
       throw error;
     }
   }
@@ -1991,7 +1994,7 @@ class VeeamApiClient {
       const response = await this.request<{ data: VeeamRepositoryState[] }>('/backupInfrastructure/repositories/states');
       return response.data;
     } catch (error) {
-      console.error('Failed to get backup repository states:', error);
+      logger.error('Failed to get backup repository states:', error);
       throw error;
     }
   }
@@ -2055,7 +2058,7 @@ class VeeamApiClient {
       });
 
     } catch (error) {
-      console.error('Failed to get enriched backup repositories:', error);
+      logger.error('Failed to get enriched backup repositories:', error);
       throw error;
     }
   }
@@ -2067,7 +2070,7 @@ class VeeamApiClient {
         body: JSON.stringify({ repositoryIds: ids })
       });
     } catch (error) {
-      console.error('Failed to rescan backup repository:', error);
+      logger.error('Failed to rescan backup repository:', error);
       throw error;
     }
   }
@@ -2078,7 +2081,7 @@ class VeeamApiClient {
         method: 'DELETE'
       });
     } catch (error) {
-      console.error('Failed to delete backup repository:', error);
+      logger.error('Failed to delete backup repository:', error);
       throw error;
     }
   }
@@ -2100,7 +2103,7 @@ class VeeamApiClient {
       const response = await this.request<UsersResult>(endpoint);
       return response.data;
     } catch (error) {
-      console.error('Error fetching users:', error);
+      logger.error('Error fetching users:', error);
       throw error;
     }
   }
@@ -2109,7 +2112,7 @@ class VeeamApiClient {
     try {
       await this.request(`/security/users/${id}`, { method: 'DELETE' });
     } catch (error) {
-      console.error(`Error deleting user ${id}:`, error);
+      logger.error(`Error deleting user ${id}:`, error);
       throw error;
     }
   }
@@ -2121,7 +2124,7 @@ class VeeamApiClient {
         body: JSON.stringify({ roles })
       });
     } catch (error) {
-      console.error(`Error updating roles for user ${id}:`, error);
+      logger.error(`Error updating roles for user ${id}:`, error);
       throw error;
     }
   }
@@ -2130,7 +2133,7 @@ class VeeamApiClient {
     try {
       await this.request(`/security/users/${id}/resetMFA`, { method: 'POST' });
     } catch (error) {
-      console.error(`Error resetting MFA for user ${id}:`, error);
+      logger.error(`Error resetting MFA for user ${id}:`, error);
       throw error;
     }
   }
@@ -2143,7 +2146,7 @@ class VeeamApiClient {
         body: JSON.stringify({ isServiceAccountEnable })
       });
     } catch (error) {
-      console.error(`Error changing service account mode for user ${id}:`, error);
+      logger.error(`Error changing service account mode for user ${id}:`, error);
       throw error;
     }
   }
@@ -2153,7 +2156,7 @@ class VeeamApiClient {
       const response = await this.request<RolesResult>('/security/roles?limit=500');
       return response.data;
     } catch (error) {
-      console.error('Error fetching roles:', error);
+      logger.error('Error fetching roles:', error);
       throw error;
     }
   }
@@ -2163,7 +2166,7 @@ class VeeamApiClient {
       const response = await this.request<RolePermissionsResult>(`/security/roles/${roleId}/permissions`);
       return response.permissions;
     } catch (error) {
-      console.error(`Error fetching permissions for role ${roleId}:`, error);
+      logger.error(`Error fetching permissions for role ${roleId}:`, error);
       throw error;
     }
   }
@@ -2172,7 +2175,7 @@ class VeeamApiClient {
     try {
       return await this.request<SecuritySettings>('/security/settings');
     } catch (error) {
-      console.error('Error fetching security settings:', error);
+      logger.error('Error fetching security settings:', error);
       throw error;
     }
   }
@@ -2185,7 +2188,7 @@ class VeeamApiClient {
         body: JSON.stringify(settings)
       });
     } catch (error) {
-      console.error('Error updating security settings:', error);
+      logger.error('Error updating security settings:', error);
       throw error;
     }
   }

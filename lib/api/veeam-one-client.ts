@@ -2,6 +2,9 @@ import { VeeamOneReportTemplate, VeeamOneTag, VeeamOneGridNode, VeeamOneReportPa
 import { TriggeredAlarmItem, AlarmHistoryItem, AlarmTemplate, ResolveAlarmRequest, AlarmsApiResponse } from '@/lib/types/veeam-one-alarms';
 import { MOCK_PROTECTED_VMS_SUMMARY, MOCK_PROTECTED_VMS_CHART, MOCK_LAST_BACKUP_AGE_CHART, MOCK_VM_DETAILS_TABLE } from './mock-report-data';
 import { configStore } from "@/lib/server/config-store";
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('VeeamOneClient');
 import process from 'process';
 
 interface TokenResponse {
@@ -90,13 +93,13 @@ class VeeamOneClient {
             if (response.ok) {
                 const data = await response.json();
                 this.connectionId = data.connectionId;
-                console.log('[VeeamOneClient] Negotiate successful. connectionId:', this.connectionId);
+                logger.info('Negotiate successful. connectionId:', this.connectionId);
                 return this.connectionId!;
             } else {
-                console.error('[VeeamOneClient] Negotiate failed:', response.status);
+                logger.error('Negotiate failed:', response.status);
             }
         } catch (e) {
-            console.error('[VeeamOneClient] Negotiate error:', e);
+            logger.error('Negotiate error:', e);
         }
 
         // Fallback to generated ID if negotiate fails
@@ -106,7 +109,7 @@ class VeeamOneClient {
             result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         this.connectionId = result;
-        console.log('[VeeamOneClient] Using fallback connectionId:', this.connectionId);
+        logger.info('Using fallback connectionId:', this.connectionId);
         return this.connectionId;
     }
 
@@ -120,7 +123,7 @@ class VeeamOneClient {
 
         // Force fresh auth if Reporter_SessionId is missing
         if (this.token && !hasValidSession) {
-            console.log('[VeeamOneClient] Reporter_SessionId missing, forcing re-authentication...');
+            logger.info('Reporter_SessionId missing, forcing re-authentication...');
             this.token = null;
             this.tokenExpiry = null;
             this.sessionCookie = null;
@@ -128,7 +131,7 @@ class VeeamOneClient {
 
         const config = this.getDynamicConfig();
         if (!config) {
-            console.warn('Veeam ONE not configured');
+            logger.warn('Veeam ONE not configured');
             return '';
         }
 
@@ -170,7 +173,7 @@ class VeeamOneClient {
             if (!response.ok) {
                 const text = await response.text();
                 // Avoid logging full error in prod, but essential for debug
-                console.error('[VeeamOneClient] Auth failed:', response.status, text);
+                logger.error('Auth failed:', response.status, text);
                 throw new Error(`Authentication failed: ${response.status} ${text} `);
             }
 
@@ -223,7 +226,7 @@ class VeeamOneClient {
 
             return this.token;
         } catch (error) {
-            console.error('Veeam ONE Auth Error:', error);
+            logger.error('Veeam ONE Auth Error:', error);
             throw error;
         }
     }
@@ -266,7 +269,7 @@ class VeeamOneClient {
             if (!response.ok) {
                 // On 401, try to re-authenticate once
                 if (response.status === 401 && !path.includes('/token')) {
-                    console.log('[VeeamOneClient] Got 401, forcing re-authentication...');
+                    logger.info('Got 401, forcing re-authentication...');
                     this.token = null;
                     this.tokenExpiry = null;
                     this.sessionCookie = null;
@@ -314,7 +317,7 @@ class VeeamOneClient {
 
             return JSON.parse(text) as T;
         } catch (error) {
-            console.error(`[VeeamOneClient] Request Error ${path}: `, error);
+            logger.error(`Request Error ${path}: `, error);
             throw error;
         }
     }
@@ -338,7 +341,7 @@ class VeeamOneClient {
 
             return []
         } catch (e) {
-            console.error("Error fetching report templates", e);
+            logger.error("Error fetching report templates", e);
             return [];
         }
     }
@@ -354,7 +357,7 @@ class VeeamOneClient {
             if ((data as any).results) return (data as any).results;
             return [];
         } catch (e) {
-            console.error("Error fetching tags", e);
+            logger.error("Error fetching tags", e);
             return [];
         }
     }
@@ -369,9 +372,9 @@ class VeeamOneClient {
 
             // Log keys to identify the correct structure
             if (data && typeof data === 'object' && !Array.isArray(data)) {
-                console.log("Saved Reports Keys:", Object.keys(data));
+                logger.info("Saved Reports Keys:", Object.keys(data));
             } else {
-                console.log("Saved Reports is Array/Primitive. IsArray:", Array.isArray(data));
+                logger.info("Saved Reports is Array/Primitive. IsArray:", Array.isArray(data));
             }
 
             // Robustness checks
@@ -386,7 +389,7 @@ class VeeamOneClient {
 
             return [];
         } catch (e) {
-            console.error("Error fetching saved reports", e);
+            logger.error("Error fetching saved reports", e);
             return [];
         }
     }
@@ -428,7 +431,7 @@ class VeeamOneClient {
             }
             return [];
         } catch (e) {
-            console.warn("Error fetching report parameters, using mock for demo if applicable", e);
+            logger.warn("Error fetching report parameters, using mock for demo if applicable", e);
             if (taskId === DEMO_TASK_ID) {
                 return [
                     { name: "Scope", value: "Virtual Infrastructure" },
@@ -448,9 +451,9 @@ class VeeamOneClient {
             const result = await this.request<{ userContextId: string }>('/api/v2.3/configuration');
             return result;
         } catch (e) {
-            console.error("[VeeamOneClient] Error fetching config:", e);
+            logger.error("Error fetching config:", e);
             // Fallback to known working (or mocked) context for dev, though likely will fail if expired
-            console.warn('[VeeamOneClient] Using FALLBACK userContextId (will likely fail)');
+            logger.warn('Using FALLBACK userContextId (will likely fail)');
             return { userContextId: '663e07ff-d485-4f7a-a60d-b0f5cd591026' };
         }
     }
@@ -482,7 +485,7 @@ class VeeamOneClient {
             const response = await this.request<{ sessionId: string }>(url, { method: 'POST' });
             return response.sessionId;
         } catch (e) {
-            console.error('[VeeamOneClient] Failed to start webview session:', e);
+            logger.error('Failed to start webview session:', e);
             throw e;
         }
     }
@@ -506,7 +509,7 @@ class VeeamOneClient {
                 body: JSON.stringify(body)
             });
         } catch (e) {
-            console.error("Error starting report session", e);
+            logger.error("Error starting report session", e);
             throw e;
         }
     }
@@ -537,7 +540,7 @@ class VeeamOneClient {
             const response = await this.request<{ state: string, result?: { data?: { resourceId: string, sections: unknown[] } } }>(url);
             return response;
         } catch (e) {
-            console.error("Error checking report status", e);
+            logger.error("Error checking report status", e);
             return null;
         }
     }
@@ -552,7 +555,7 @@ class VeeamOneClient {
 
         // Short-circuit for mock data
         if (sessionId === "mock-execution-id" || resourceId === "mock-resource-id") {
-            console.log(`[VeeamOneClient] Serving MOCK data for ${sectionId}`);
+            logger.info(`Serving MOCK data for ${sectionId}`);
             if (sectionId === 'summry1') return MOCK_PROTECTED_VMS_SUMMARY as unknown as T;
             if (sectionId === 'chart_protected_vms') return MOCK_PROTECTED_VMS_CHART as unknown as T;
             if (sectionId === 'chart_vm_last_backup_age') return MOCK_LAST_BACKUP_AGE_CHART as unknown as T;
@@ -577,11 +580,11 @@ class VeeamOneClient {
             });
             return data;
         } catch (e) {
-            console.error(`Error fetching section ${sectionId}`, e);
+            logger.error(`Error fetching section ${sectionId}`, e);
 
             // MOCK FALLBACK
             if (sessionId === "mock-execution-id" || resourceId === "mock-resource-id" || (sessionId === "demo" && taskId === '8a56d84f-1790-4f54-ab20-2e0bfdefa16b')) {
-                console.log(`[VeeamOneClient] Serving MOCK data for ${sectionId}`);
+                logger.info(`Serving MOCK data for ${sectionId}`);
                 if (sectionId === 'summry1') return MOCK_PROTECTED_VMS_SUMMARY as unknown as T;
                 if (sectionId === 'chart_protected_vms') return MOCK_PROTECTED_VMS_CHART as unknown as T;
                 if (sectionId === 'chart_vm_last_backup_age') return MOCK_LAST_BACKUP_AGE_CHART as unknown as T;
@@ -605,7 +608,7 @@ class VeeamOneClient {
             // The API returns a quoted string, so we strip quotes if present
             return typeof url === 'string' ? url.replace(/^"|"$/g, '') : null;
         } catch (e) {
-            console.error("Error fetching report link", e);
+            logger.error("Error fetching report link", e);
             return null;
         }
     }
@@ -631,7 +634,7 @@ class VeeamOneClient {
 
             return await this.request<AlarmsApiResponse<TriggeredAlarmItem>>(`/api/v2.3/alarms/triggeredChildAlarms?${queryParams.toString()}`);
         } catch (e) {
-            console.error("Error fetching triggered child alarms", e);
+            logger.error("Error fetching triggered child alarms", e);
             return { items: [], totalCount: 0 };
         }
     }
@@ -653,7 +656,7 @@ class VeeamOneClient {
 
             return await this.request<AlarmsApiResponse<AlarmHistoryItem>>(`/api/v2.3/alarms/triggeredAlarmsHistory?${queryParams.toString()}`);
         } catch (e) {
-            console.error("Error fetching triggered alarms history", e);
+            logger.error("Error fetching triggered alarms history", e);
             return { items: [], totalCount: 0 };
         }
     }
@@ -662,7 +665,7 @@ class VeeamOneClient {
         try {
             return await this.request<AlarmTemplate>(`/api/v2.3/alarms/templates/${templateId}`);
         } catch (e) {
-            console.error(`Error fetching alarm template ${templateId}`, e);
+            logger.error(`Error fetching alarm template ${templateId}`, e);
             return null;
         }
     }
@@ -681,7 +684,7 @@ class VeeamOneClient {
             });
             return true;
         } catch (e) {
-            console.error("Error resolving alarms", e);
+            logger.error("Error resolving alarms", e);
             return false;
         }
     }
